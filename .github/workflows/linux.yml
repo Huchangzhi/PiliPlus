@@ -1,0 +1,54 @@
+name: Build for Linux
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+    inputs:
+      branch:
+        required: false
+        default: 'main'
+
+jobs:
+  build-linux-app:
+    name: Release Linux
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+          fetch-depth: 0
+
+      - name: Setup flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version-file: pubspec.yaml
+
+      - name: Build Linux
+        run: |
+          dart lib/scripts/build.dart
+          flutter build linux --release
+
+      - name: Prepare Upload
+        run: |
+          mkdir -p Release/PiliPlus-Linux
+          mv build/linux/x64/release/bundle/* Release/PiliPlus-Linux/
+
+      - name: Create tar.gz archive
+        run: |
+          cd Release
+          tar -czvf PiliPlus-Linux.tar.gz PiliPlus-Linux
+
+      - name: Upload linux release
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-release
+          path: Release/PiliPlus-Linux.tar.gz
