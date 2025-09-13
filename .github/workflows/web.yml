@@ -35,6 +35,11 @@ jobs:
       - name: Download dependencies
         run: flutter pub get
 
+      - name: Run build script
+        run: |
+          dart lib/scripts/build.dart
+          ls -la lib/build_config.dart
+
       - name: Run tests
         run: flutter test
 
