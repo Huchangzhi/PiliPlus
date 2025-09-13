@@ -1,0 +1,55 @@
+name: Build for Web
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+    inputs:
+      branch:
+        required: false
+        default: 'main'
+
+jobs:
+  build-web-app:
+    name: Release Web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+          fetch-depth: 0
+
+      - name: Setup flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version-file: pubspec.yaml
+
+      - name: Download dependencies
+        run: flutter pub get
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Build Web
+        run: |
+          dart lib/scripts/build.dart
+          flutter build web --release
+
+      - name: Prepare Upload
+        run: |
+          mkdir -p Release/PiliPlus-Web
+          cp -r build/web/* Release/PiliPlus-Web/
+
+      - name: Upload web release
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-release
+          path: Release
