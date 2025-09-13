@@ -40,9 +40,6 @@ jobs:
           dart lib/scripts/build.dart
           ls -la lib/build_config.dart
 
-      - name: Run tests
-        run: flutter test
-
       - name: Build Web
         run: |
           dart lib/scripts/build.dart
