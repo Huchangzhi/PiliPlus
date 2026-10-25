@@ -1,4 +1,4 @@
-import 'dart:io' show Platform, Directory;
+import 'dart:io' show Directory;
 
 import 'package:PiliPlus/common/widgets/custom_icon.dart';
 import 'package:PiliPlus/common/widgets/dialog/simple_dialog_option.dart';
@@ -9,6 +9,7 @@ import 'package:PiliPlus/common/widgets/gesture/horizontal_drag_gesture_recogniz
 import 'package:PiliPlus/common/widgets/image_grid/image_grid_view.dart'
     show ImageGridView, ImageModel;
 import 'package:PiliPlus/http/fav.dart';
+import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/sponsor_block/skip_type.dart';
 import 'package:PiliPlus/pages/common/slide/common_slide_page.dart';
@@ -31,6 +32,7 @@ import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/update.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
@@ -38,6 +40,14 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import 'package:material_ui/material_ui.dart' hide RefreshIndicator;
 
 List<SettingsModel> get extraSettings => [
+  if (kIsWeb)
+    NormalModel(
+      title: 'Web 服务端',
+      subtitle: '页面与账号数据保存在浏览器，服务端只转发请求',
+      leading: const Icon(Icons.dns_outlined),
+      getSubtitle: () => Pref.webApiServer,
+      onTap: _showWebServerDialog,
+    ),
   if (PlatformUtils.isDesktop) ...[
     SwitchModel(
       title: '退出时最小化',
@@ -52,7 +62,7 @@ List<SettingsModel> get extraSettings => [
       leading: const Icon(Icons.storage),
       onTap: _showDownPathDialog,
     ),
-  ] else if (Platform.isAndroid)
+  ] else if (PlatformUtils.isAndroid)
     SwitchModel(
       title: '允许三方APP访问私有存储',
       subtitle: '允许三方APP（例如MT管理器）通过访问外部存储的方式访问私有存储下的文件',
@@ -140,7 +150,7 @@ List<SettingsModel> get extraSettings => [
     title: '侧滑关闭二级页面',
     leading: const Icon(CustomIcons.touch_app_rotate_270),
     setKey: SettingBoxKey.slideDismissReplyPage,
-    defaultVal: Platform.isIOS,
+    defaultVal: PlatformUtils.isIOS,
     onChanged: (value) => CommonSlideMixin.slideDismissReplyPage = value,
   ),
   const SwitchModel(
@@ -278,6 +288,65 @@ List<SettingsModel> get extraSettings => [
     },
   ),
 ];
+
+void _showWebServerDialog(BuildContext context, VoidCallback setState) {
+  final controller = TextEditingController(text: Pref.webApiServer);
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Web 服务端'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: controller,
+            keyboardType: TextInputType.url,
+            autocorrect: false,
+            decoration: InputDecoration(
+              hintText: HttpString.defaultWebApiServer,
+              border: const OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            '服务端只负责转发网络请求，账号、Cookie 与缓存均保存在当前浏览器。'
+            '部署后可在地址后加路径前缀，例如 https://example.com/pili。',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            controller.text = HttpString.defaultWebApiServer;
+          },
+          child: const Text('默认'),
+        ),
+        TextButton(onPressed: Get.back, child: const Text('取消')),
+        FilledButton(
+          onPressed: () async {
+            final raw = controller.text.trim();
+            final uri = Uri.tryParse(raw);
+            if (uri == null ||
+                !uri.hasScheme ||
+                (uri.scheme != 'http' && uri.scheme != 'https') ||
+                uri.host.isEmpty) {
+              SmartDialog.showToast('请输入合法的 http(s) 地址');
+              return;
+            }
+            final server = raw.replaceFirst(RegExp(r'/+$'), '');
+            await GStorage.setting.put(SettingBoxKey.webApiServer, server);
+            Get.back();
+            setState();
+            SmartDialog.showToast('已切换至 $server');
+          },
+          child: const Text('保存'),
+        ),
+      ],
+    ),
+  );
+}
 
 void _showDownPathDialog(BuildContext context, VoidCallback setState) {
   showDialog(

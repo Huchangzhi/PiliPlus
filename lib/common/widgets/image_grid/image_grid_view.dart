@@ -184,7 +184,7 @@ class ImageGridView extends StatelessWidget {
               height: item.height.toInt(),
             ),
             child: Text(
-              '保存${Platform.isIOS ? '实况' : '视频'}',
+              '保存${PlatformUtils.isIOS ? '实况' : '视频'}',
               style: const TextStyle(fontSize: 14),
             ),
           ),

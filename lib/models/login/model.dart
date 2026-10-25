@@ -6,6 +6,10 @@ class CaptchaDataModel {
     this.tencent,
     this.validate,
     this.seccode,
+    this.lotNumber,
+    this.captchaOutput,
+    this.passToken,
+    this.genTime,
   });
 
   String? type;
@@ -14,6 +18,10 @@ class CaptchaDataModel {
   Tencent? tencent;
   String? validate;
   String? seccode;
+  String? lotNumber;
+  String? captchaOutput;
+  String? passToken;
+  String? genTime;
 
   CaptchaDataModel.fromJson(Map<String, dynamic> json) {
     type = json["type"];

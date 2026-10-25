@@ -14,6 +14,7 @@ import 'package:PiliPlus/utils/linux_cookie_manager.dart';
 import 'package:PiliPlus/utils/login_utils.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/platform_utils.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -66,14 +67,14 @@ class _WebviewPageState extends State<WebviewPage> with RouteAware {
       _off = map['off'] ?? false;
     }
 
-    if (Platform.isAndroid) {
+    if (PlatformUtils.isAndroid) {
       routeObserver.subscribe(this, Get.routing.route as GetPageRoute);
     }
   }
 
   @override
   void dispose() {
-    if (Platform.isAndroid) routeObserver.unsubscribe(this);
+    if (PlatformUtils.isAndroid) routeObserver.unsubscribe(this);
     _linuxController?.dispose();
     _linuxController = null;
     _webViewController = null;
@@ -165,14 +166,14 @@ class _WebviewPageState extends State<WebviewPage> with RouteAware {
   Future<void> _handleMenuItem(WebviewMenuItem item) async {
     switch (item) {
       case WebviewMenuItem.refresh:
-        if (Platform.isLinux) {
+        if (PlatformUtils.isLinux) {
           _linuxController?.reload();
         } else {
           _webViewController?.reload();
         }
         break;
       case WebviewMenuItem.copy:
-        if (Platform.isLinux) {
+        if (PlatformUtils.isLinux) {
           final url = _linuxController?.currentUrl ?? _currentUrl;
           Utils.copyText(url);
         } else {
@@ -183,7 +184,7 @@ class _WebviewPageState extends State<WebviewPage> with RouteAware {
         }
         break;
       case WebviewMenuItem.openInBrowser:
-        if (Platform.isLinux) {
+        if (PlatformUtils.isLinux) {
           final url = _linuxController?.currentUrl ?? _currentUrl;
           PageUtils.launchURL(url);
         } else {
@@ -195,7 +196,7 @@ class _WebviewPageState extends State<WebviewPage> with RouteAware {
         break;
       case WebviewMenuItem.clearCache:
         try {
-          if (Platform.isLinux) {
+          if (PlatformUtils.isLinux) {
             await LinuxCookieManager.deleteAllCookies();
             await LinuxWebviewPlugin.clearCache();
             _linuxController?.reload();
@@ -210,7 +211,7 @@ class _WebviewPageState extends State<WebviewPage> with RouteAware {
         }
         break;
       case WebviewMenuItem.goBack:
-        if (Platform.isLinux) {
+        if (PlatformUtils.isLinux) {
           _linuxController?.goBack();
         } else {
           if (await _webViewController?.canGoBack() == true) {
@@ -221,7 +222,7 @@ class _WebviewPageState extends State<WebviewPage> with RouteAware {
         }
         break;
       case WebviewMenuItem.resetCookie:
-        if (Platform.isLinux) {
+        if (PlatformUtils.isLinux) {
           final currentUrl = _linuxController?.currentUrl ?? _currentUrl;
           if (LinuxCookieManager.isBiliDomain(currentUrl)) {
             final js = LinuxCookieManager.generateCookieInjectionJs();
@@ -373,7 +374,7 @@ document.addEventListener('click', function(e) {
 
   @override
   Widget build(BuildContext context) {
-    if (Platform.isLinux) {
+    if (PlatformUtils.isLinux) {
       return _buildLinuxView(context);
     }
     return Scaffold(
@@ -476,7 +477,7 @@ document.styleSheets[0].insertRule('#app__display-area > div.control-panel {disp
                   //   ''',
                   // );
                 },
-                onDownloadStartRequest: Platform.isAndroid
+                onDownloadStartRequest: PlatformUtils.isAndroid
                     ? (controller, request) {
                         showDialog(
                           context: context,

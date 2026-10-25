@@ -13,6 +13,7 @@ import 'package:PiliPlus/models/dynamics/result.dart';
 import 'package:PiliPlus/pages/dynamics/widgets/vote.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/parse_string.dart';
+import 'package:PiliPlus/utils/platform_utils.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
@@ -320,7 +321,7 @@ TextSpan? richNode(
 
                       DynamicsHttp.dynPic(i.rid).then((res) {
                         if (res case Success(:final response)) {
-                          if (Platform.isAndroid) {
+                          if (PlatformUtils.isAndroid) {
                             i.pics = response;
                           } else {
                             i.dynPic = response;

@@ -18,6 +18,7 @@ import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_key.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/theme_utils.dart';
+import 'package:PiliPlus/utils/platform_utils.dart';
 import 'package:collection/collection.dart';
 import 'package:flex_seed_scheme/flex_seed_scheme.dart';
 import 'package:flutter/foundation.dart' show kReleaseMode;
@@ -134,7 +135,7 @@ class _ColorSelectPageState extends State<ColorSelectPage> {
               },
             ),
           ),
-          if (!Platform.isIOS)
+          if (!PlatformUtils.isIOS)
             Obx(
               () => ListTile(
                 title: const Text('动态取色'),

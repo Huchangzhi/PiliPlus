@@ -24,6 +24,7 @@ import 'package:PiliPlus/pages/danmaku/danmaku_model.dart';
 import 'package:PiliPlus/pages/live_room/send_danmaku/view.dart';
 import 'package:PiliPlus/pages/video/widgets/header_control.dart';
 import 'package:PiliPlus/plugin/pl_player/controller.dart';
+import 'package:PiliPlus/plugin/pl_player/player_api.dart';
 import 'package:PiliPlus/plugin/pl_player/models/data_source.dart';
 import 'package:PiliPlus/plugin/pl_player/utils/danmaku_options.dart';
 import 'package:PiliPlus/services/service_locator.dart';
@@ -44,8 +45,10 @@ import 'package:PiliPlus/utils/utils.dart';
 import 'package:PiliPlus/utils/video_utils.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:easy_debounce/easy_throttle.dart';
-import 'package:flutter/foundation.dart' show kDebugMode, kReleaseMode;
+import 'package:flutter/foundation.dart'
+    show kDebugMode, kIsWeb, kReleaseMode;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:collection/collection.dart';
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -132,7 +135,7 @@ class LiveRoomController extends GetxController {
   final RxBool isPortrait = false.obs;
   late List<LiveQuality> acceptQnList = [];
   final Rxn<LiveQuality> currentQn = Rxn<LiveQuality>(
-    PlatformUtils.isMobile || Platform.isLinux
+    PlatformUtils.isMobile || PlatformUtils.isLinux
         ? null
         : .fromCode(Pref.liveQuality),
   );
@@ -141,6 +144,7 @@ class LiveRoomController extends GetxController {
   late final int mid;
 
   String? videoUrl;
+  final webLiveUrl = Rxn<String>();
   bool? isPlaying;
   late bool isFullScreen = false;
 
@@ -193,9 +197,9 @@ class LiveRoomController extends GetxController {
   void _startSizeSub() {
     if (isPortrait.value) return;
     _stopSizeSub();
-    _sizeSub = plPlayerController.videoPlayerController?.stream.size.listen(
-      _onSizeChanged,
-    );
+    final player = plPlayerController.videoPlayerController;
+    if (player == null) return;
+    _sizeSub = playerSizeStream(player).listen(_onSizeChanged);
   }
 
   void _stopSizeSub() {
@@ -224,6 +228,10 @@ class LiveRoomController extends GetxController {
     bool autoplay = true,
     bool autoFullScreenFlag = false,
   }) {
+    if (kIsWeb) {
+      SmartDialog.showToast('Web 端暂不支持直播流播放');
+      return null;
+    }
     if (videoUrl == null) {
       return null;
     }
@@ -324,6 +332,36 @@ class LiveRoomController extends GetxController {
     this.formatIndex = formatIndex;
     this.codecIndex = codecIndex;
     this.liveUrlIndex = liveUrlIndex;
+
+    if (kIsWeb) {
+      webLiveUrl.value = null;
+      final hls = stream.firstWhereOrNull(
+        (s) => (s.protocolName ?? '').toLowerCase().contains('hls'),
+      );
+      if (hls != null && hls.format.isNotEmpty) {
+        final format =
+            hls.format.firstWhereOrNull(
+              (f) => (f.formatName ?? '').toLowerCase().contains('fmp4'),
+            ) ??
+            hls.format.first;
+        if (format.codec.isNotEmpty) {
+          final codec =
+              format.codec.firstWhereOrNull(
+                (c) => (c.codecName ?? '') == 'avc',
+              ) ??
+              format.codec.first;
+          videoUrl = VideoUtils.getLiveCdnUrl(codec);
+          acceptQnList = codec.acceptQn;
+          currentQn.value = codec.currentQn;
+          webLiveUrl.value =
+              '${Pref.webApiServer}/hls?url=${Uri.encodeComponent(videoUrl!)}';
+          // The browser uses an iframe player, so PlPlayerController never
+          // transitions to playing. Start the danmaku socket explicitly.
+          Future.microtask(startLiveMsg);
+        }
+      }
+      return playerInit()?.whenComplete(_startSizeSub);
+    }
 
     final CodecItem item = stream
         .getOrFirst(streamIndex)
@@ -550,9 +588,17 @@ class LiveRoomController extends GetxController {
             streamToken: info.token,
             roomId: roomId,
             uid: Accounts.heartbeat.mid,
-            servers: info.hostList
-                .map((host) => 'wss://${host.host}:${host.wssPort}/sub')
-                .toList(),
+            servers: info.hostList.map((host) {
+              final target = 'wss://${host.host}:${host.wssPort}/sub';
+              if (!kIsWeb) return target;
+              final server = Pref.webApiServer;
+              final wsBase = server.startsWith('https://')
+                  ? 'wss://${server.substring(8)}'
+                  : server.startsWith('http://')
+                  ? 'ws://${server.substring(7)}'
+                  : server;
+              return '$wsBase/live-ws?target=${Uri.encodeComponent(target)}';
+            }).toList(),
           )
           ..addEventListener(_danmakuListener)
           ..init();
@@ -644,7 +690,7 @@ class LiveRoomController extends GetxController {
           superChatMsg.insert(0, item);
           addDm(item);
           if (!enableFSSC) return;
-          if (Platform.isAndroid && AndroidHelper.isPipMode) return;
+          if (PlatformUtils.isAndroid && AndroidHelper.isPipMode) return;
           if (plPlayerController.showDanmaku &&
               (isFullScreen || plPlayerController.isDesktopPip)) {
             fsSC.value = item.copyWith(

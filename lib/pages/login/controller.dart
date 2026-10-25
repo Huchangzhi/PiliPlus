@@ -40,6 +40,7 @@ class LoginPageController extends GetxController
 
   late var selectedCountryCodeId = Login.dialPrefix.first;
   late String captchaKey = '';
+  bool _captchaVisible = false;
   late final RxInt smsSendCooldown = 0.obs;
   late int smsSendTimestamp = 0;
 
@@ -118,24 +119,59 @@ class LoginPageController extends GetxController
   }
 
   // 申请极验验证码
-  void getCaptcha(
+  Future<void> getCaptcha(
     String geeGt,
     String geeChallenge,
-    VoidCallback onSuccess,
-  ) {
-    GeetestWebviewDialog.geetest(geeGt, geeChallenge).then((res) {
-      if (res != null) {
+    VoidCallback onSuccess, {
+    String? recaptchaType,
+  }) async {
+    if (_captchaVisible) return;
+    _captchaVisible = true;
+    try {
+      final res = await GeetestWebviewDialog.geetest(
+        geeGt,
+        geeChallenge,
+        recaptchaType: recaptchaType,
+      );
+      if (res == null) return;
+      final isV4 =
+          res.containsKey('lot_number') || res.containsKey('captcha_output');
+      if (isV4) {
         captchaData
+          ..type = 'geetest4'
+          ..validate = null
+          ..seccode = null
+          ..lotNumber = res['lot_number']?.toString()
+          ..captchaOutput = res['captcha_output']?.toString()
+          ..passToken = res['pass_token']?.toString()
+          ..genTime = res['gen_time']?.toString()
+          ..geetest = GeetestData(challenge: geeChallenge, gt: geeGt);
+        if (captchaData.lotNumber == null ||
+            captchaData.captchaOutput == null ||
+            captchaData.passToken == null ||
+            captchaData.genTime == null) {
+          SmartDialog.showToast('验证码参数缺失，请重试');
+          return;
+        }
+      } else {
+        captchaData
+          ..type = 'geetest'
+          ..lotNumber = null
+          ..captchaOutput = null
+          ..passToken = null
+          ..genTime = null
           ..validate = res['geetest_validate']
           ..seccode = res['geetest_seccode']
           ..geetest = GeetestData(
             challenge: res['geetest_challenge'],
             gt: geeGt,
           );
-        SmartDialog.showToast('验证成功');
-        onSuccess();
       }
-    });
+      SmartDialog.showToast('验证成功');
+      onSuccess();
+    } finally {
+      _captchaVisible = false;
+    }
   }
 
   static String validateCookie(String cookie) {
@@ -302,6 +338,7 @@ class LoginPageController extends GetxController
                       "获取验证码失败，请尝试其它登录方式\n"
                       "(${preCaptureRes['code']}) ${preCaptureRes['msg']} ${preCaptureRes['data']}",
                     );
+                    return;
                   }
                   String geeGt = preCaptureRes['data']['gee_gt'];
                   String geeChallenge = preCaptureRes['data']['gee_challenge'];
@@ -321,13 +358,24 @@ class LoginPageController extends GetxController
                       final safeCenterSendSmsCodeRes =
                           await LoginHttp.safeCenterSmsCode(
                             tmpCode: currentUri.queryParameters['tmp_token']!,
-                            geeChallenge: geeChallenge,
+                            geeChallenge:
+                                captchaData.geetest?.challenge ??
+                                geeChallenge,
                             geeSeccode: captchaData.seccode,
                             geeValidate: captchaData.validate,
+                            geeLotNumber: captchaData.lotNumber,
+                            geeCaptchaOutput: captchaData.captchaOutput,
+                            geePassToken: captchaData.passToken,
+                            geeGenTime: captchaData.genTime,
                             recaptchaToken: captchaData.token,
                             refererUrl: url,
                           );
                       if (!safeCenterSendSmsCodeRes['status']) {
+                        if (kDebugMode) {
+                          debugPrint(
+                            'safeCenterSmsCode: $safeCenterSendSmsCodeRes',
+                          );
+                        }
                         SmartDialog.showToast(
                           "发送短信验证码失败，请尝试其它登录方式\n"
                           "(${safeCenterSendSmsCodeRes['code']}) ${safeCenterSendSmsCodeRes['msg']}",
@@ -338,6 +386,7 @@ class LoginPageController extends GetxController
                       captchaKey =
                           safeCenterSendSmsCodeRes['data']['captcha_key'];
                     },
+                    recaptchaType: preCaptureRes['data']['recaptcha_type'],
                   );
                 },
               ),
@@ -431,7 +480,12 @@ class LoginPageController extends GetxController
           String geeGt = captureUri.queryParameters['gee_gt']!;
           String geeChallenge = captureUri.queryParameters['gee_challenge']!;
 
-          getCaptcha(geeGt, geeChallenge, loginByPassword);
+          getCaptcha(
+            geeGt,
+            geeChallenge,
+            loginByPassword,
+            recaptchaType: captureUri.queryParameters['recaptcha_type'],
+          );
           break;
         default:
           SmartDialog.showToast(res['msg']);

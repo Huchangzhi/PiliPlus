@@ -1,5 +1,4 @@
 // edit from package:dio_cookie_manager
-import 'dart:io';
 
 import 'package:PiliPlus/http/api.dart';
 import 'package:PiliPlus/http/constants.dart';
@@ -12,6 +11,7 @@ import 'package:PiliPlus/utils/extension/string_ext.dart';
 import 'package:PiliPlus/utils/platform_utils.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:cookie_jar/cookie_jar.dart' show Cookie;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -84,8 +84,7 @@ class AccountManager extends Interceptor {
       account.cookieJar
           .loadForRequest(options.uri)
           .then((cookies) {
-            final previousCookies =
-                options.headers[HttpHeaders.cookieHeader] as String?;
+            final previousCookies = options.headers['cookie'] as String?;
             final newCookies = getCookies([
               ...?previousCookies
                   ?.split(';')
@@ -93,9 +92,7 @@ class AccountManager extends Interceptor {
                   .map(Cookie.fromSetCookieValue),
               ...cookies,
             ]);
-            options.headers[HttpHeaders.cookieHeader] = newCookies.isNotEmpty
-                ? newCookies
-                : '';
+            options.headers['cookie'] = newCookies.isNotEmpty ? newCookies : '';
             handler.next(options);
           })
           .catchError((Object e, StackTrace s) {
@@ -183,7 +180,7 @@ class AccountManager extends Interceptor {
   }
 
   static Future<void> _saveCookies(Account account, Response response) async {
-    final setCookies = response.headers[HttpHeaders.setCookieHeader];
+    final setCookies = response.headers['set-cookie'];
     if (setCookies == null || setCookies.isEmpty) {
       return;
     }
@@ -194,7 +191,7 @@ class AccountManager extends Interceptor {
         .map(Cookie.fromSetCookieValue)
         .toList();
     final statusCode = response.statusCode ?? 0;
-    final locations = response.headers[HttpHeaders.locationHeader] ?? const [];
+    final locations = response.headers['location'] ?? const [];
     final isRedirectRequest = statusCode >= 300 && statusCode < 400;
     final originalUri = response.requestOptions.uri;
     final realUri = originalUri.resolveUri(response.realUri);

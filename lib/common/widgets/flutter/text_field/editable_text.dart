@@ -3530,7 +3530,7 @@ class EditableTextState extends State<EditableText>
     _lastKnownRemoteTextEditingValue = remoteValue ?? value;
 
     if (value == _value) {
-      if (remoteValue != null && Platform.isIOS) {
+      if (remoteValue != null && PlatformUtils.isIOS) {
         _updateRemoteEditingValueIfNeeded();
       }
       // This is possible, for example, when the numeric keyboard is input,

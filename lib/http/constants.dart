@@ -1,3 +1,5 @@
+import 'package:PiliPlus/http/server_default.dart';
+
 abstract final class HttpString {
   static const String baseUrl = 'https://www.bilibili.com';
   static const String apiBaseUrl = 'https://api.bilibili.com';
@@ -14,4 +16,9 @@ abstract final class HttpString {
   static const String mallBaseUrl = 'https://mall.bilibili.com';
 
   static const String sponsorBlockBaseUrl = 'https://www.bsbsb.top';
+
+  /// Default relay used by the web build. The static build reads
+  /// `pili-config.js` first, then falls back to `--dart-define=PILI_SERVER`.
+  /// It can always be overridden in settings.
+  static String get defaultWebApiServer => webServerDefault;
 }

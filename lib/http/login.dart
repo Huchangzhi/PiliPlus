@@ -369,6 +369,10 @@ abstract final class LoginHttp {
     String? geeChallenge,
     String? geeSeccode,
     String? geeValidate,
+    String? geeLotNumber,
+    String? geeCaptchaOutput,
+    String? geePassToken,
+    String? geeGenTime,
     String? recaptchaToken,
     required String refererUrl,
   }) async {
@@ -376,9 +380,16 @@ abstract final class LoginHttp {
       'disable_rcmd': '0',
       'sms_type': smsType ?? 'loginTelCheck',
       'tmp_code': tmpCode,
-      'gee_challenge': ?geeChallenge,
-      'gee_seccode': ?geeSeccode,
-      'gee_validate': ?geeValidate,
+      if (geeLotNumber != null) ...{
+        'gee_lot_number': geeLotNumber,
+        'gee_captcha_output': ?geeCaptchaOutput,
+        'gee_pass_token': ?geePassToken,
+        'gee_gen_time': ?geeGenTime,
+      } else ...{
+        'gee_challenge': ?geeChallenge,
+        'gee_seccode': ?geeSeccode,
+        'gee_validate': ?geeValidate,
+      },
       'recaptcha_token': ?recaptchaToken,
     };
     AppSign.appSign(data);

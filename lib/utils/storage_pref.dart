@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:PiliPlus/common/widgets/gesture/horizontal_drag_gesture_recognizer.dart'
     show deviceTouchSlop;
 import 'package:PiliPlus/common/widgets/pair.dart';
@@ -272,7 +270,7 @@ abstract final class Pref {
 
   static String get autosync => _setting.get(
     SettingBoxKey.autosync,
-    defaultValue: Platform.isAndroid ? '30' : '0',
+    defaultValue: PlatformUtils.isAndroid ? '30' : '0',
   );
 
   static CDNService get defaultCDNService {
@@ -509,7 +507,7 @@ abstract final class Pref {
       _setting.get(SettingBoxKey.enableCommAntifraud, defaultValue: false);
 
   static bool get biliSendCommAntifraud =>
-      Platform.isAndroid &&
+      PlatformUtils.isAndroid &&
       _setting.get(SettingBoxKey.biliSendCommAntifraud, defaultValue: false);
 
   static bool get enableCreateDynAntifraud =>
@@ -532,7 +530,7 @@ abstract final class Pref {
 
   static bool get slideDismissReplyPage => _setting.get(
     SettingBoxKey.slideDismissReplyPage,
-    defaultValue: Platform.isIOS,
+    defaultValue: PlatformUtils.isIOS,
   );
 
   static bool get showFSActionItem =>
@@ -739,7 +737,7 @@ abstract final class Pref {
       _setting.get(SettingBoxKey.customColor, defaultValue: 0);
 
   static bool get dynamicColor =>
-      !Platform.isIOS &&
+      !PlatformUtils.isIOS &&
       _setting.get(SettingBoxKey.dynamicColor, defaultValue: true);
 
   static bool get enableSystemProxy =>
@@ -1101,4 +1099,23 @@ abstract final class Pref {
 
   static bool get filterIntro =>
       _setting.get(SettingBoxKey.filterIntro, defaultValue: false);
+
+  static String get webApiServer {
+    final value = _setting.get(SettingBoxKey.webApiServer) as String?;
+    final server = value?.trim();
+    if (server != null && server.isNotEmpty) {
+      return server.replaceFirst(RegExp(r'/+$'), '');
+    }
+    if (kIsWeb) {
+      final base = Uri.base;
+      final host = base.host;
+      if ((base.scheme == 'http' || base.scheme == 'https') &&
+          (host == '127.0.0.1' || host == 'localhost' || host == '::1')) {
+        // The local dev server also exposes /proxy, so keep API, images and
+        // media same-origin to avoid CORS / tainted video surfaces.
+        return base.origin;
+      }
+    }
+    return HttpString.defaultWebApiServer;
+  }
 }

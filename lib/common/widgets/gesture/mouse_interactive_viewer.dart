@@ -12,6 +12,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:vector_math/vector_math_64.dart' show Quad, Vector3;
+import 'package:PiliPlus/utils/platform_utils.dart';
 
 class MouseInteractiveViewer extends StatefulWidget {
   const MouseInteractiveViewer({
@@ -98,7 +99,7 @@ class _MouseInteractiveViewerState extends State<MouseInteractiveViewer>
   _GestureType? _gestureType;
 
   static final gestureSettings = DeviceGestureSettings(
-    touchSlop: Platform.isIOS ? 9 : 4,
+    touchSlop: PlatformUtils.isIOS ? 9 : 4,
   );
 
   late final ScaleGestureRecognizer _scaleGestureRecognizer;

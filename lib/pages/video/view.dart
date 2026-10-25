@@ -289,7 +289,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
           }
         } else {
           if (plPlayerController!.controlsLock.value &&
-              (!Platform.isAndroid || !AndroidHelper.isPipMode)) {
+              (!PlatformUtils.isAndroid || !AndroidHelper.isPipMode)) {
             plPlayerController!.onLockControl(false);
           }
         }
@@ -383,7 +383,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
 
     removeObserverMobile(this);
 
-    if (Platform.isAndroid && !videoDetailController.setSystemBrightness) {
+    if (PlatformUtils.isAndroid && !videoDetailController.setSystemBrightness) {
       ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();
     }
 
@@ -427,7 +427,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     introController.startTimer();
 
     if (mounted &&
-        Platform.isAndroid &&
+        PlatformUtils.isAndroid &&
         !videoDetailController.setSystemBrightness) {
       if (videoDetailController.brightness != null) {
         plPlayerController?.brightness.value =

@@ -71,7 +71,8 @@ import 'package:hive_ce/hive.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:material_ui/material_ui.dart' hide showBottomSheet;
-import 'package:media_kit/media_kit.dart' show NativePlayer;
+import 'package:media_kit/media_kit.dart';
+import 'package:PiliPlus/plugin/pl_player/player_api.dart';
 
 mixin TimeBatteryMixin<T extends StatefulWidget> on State<T> {
   PlPlayerController get plPlayerController;
@@ -590,7 +591,8 @@ class HeaderControlState extends State<HeaderControl>
                                     player.state.tracks.video.length <= 2) {
                                   videoDetailCtr.playerInit();
                                 } else {
-                                  player.setProperty(
+                                  setPlayerProperty(
+                                    player,
                                     'file-local-options/vid',
                                     onlyPlayAudio ? 'auto' : 'no',
                                   );
@@ -805,10 +807,10 @@ class HeaderControlState extends State<HeaderControl>
 
   static void showPlayerInfo(
     BuildContext context, {
-    required NativePlayer player,
+    required Player player,
   }) {
-    final hwdec = player.getProperty('hwdec-current');
-    final volume = player.getProperty('volume');
+    final hwdec = playerPropertyLabel(player, 'hwdec-current');
+    final volume = playerPropertyLabel(player, 'volume');
     showDialog(
       context: context,
       builder: (context) {
@@ -875,13 +877,13 @@ class HeaderControlState extends State<HeaderControl>
                     ListTile(
                       dense: true,
                       title: const Text("Volume"),
-                      subtitle: Text(volume),
+                      subtitle: Text(volume ?? ''),
                       onTap: () => Utils.copyText('Volume\n$volume'),
                     ),
                     ListTile(
                       dense: true,
                       title: const Text('hwdec'),
-                      subtitle: Text(hwdec),
+                      subtitle: Text(hwdec ?? ''),
                       onTap: () => Utils.copyText('hwdec\n$hwdec'),
                     ),
                   ],
@@ -1259,7 +1261,7 @@ class HeaderControlState extends State<HeaderControl>
                   final name =
                       '${videoDetail.title}-${videoDetail.owner?.name}(${videoDetail.owner?.mid})-${videoDetailCtr.bvid}-${videoDetailCtr.cid.value}-${item.lanDoc}.${format.name}'
                           .replaceAll(
-                            Platform.isWindows ? RegExp(r'[<>:/\\|?*"]') : '/',
+                            PlatformUtils.isWindows ? RegExp(r'[<>:/\\|?*"]') : '/',
                             '_',
                           );
                   // Reserved characters may not be used in file names. See: https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file#naming-conventions
@@ -1929,8 +1931,8 @@ class HeaderControlState extends State<HeaderControl>
                     ),
                   ),
                 ),
-                if ((Platform.isAndroid && PiliAndroidHelper.isPipAvailable) ||
-                    (Platform.isIOS && IOSPipHelper.isAvailable) ||
+                if ((PlatformUtils.isAndroid && PiliAndroidHelper.isPipAvailable) ||
+                    (PlatformUtils.isIOS && IOSPipHelper.isAvailable) ||
                     (PlatformUtils.isDesktop && !isFullScreen))
                   SizedBox(
                     width: btnWidth,

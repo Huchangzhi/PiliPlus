@@ -40,7 +40,7 @@ import 'package:PiliPlus/utils/subtitle_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:PiliPlus/utils/wbi_sign.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show compute;
+import 'package:flutter/foundation.dart' show compute, kIsWeb;
 import 'package:protobuf/protobuf.dart';
 
 /// view层根据 status 判断渲染逻辑
@@ -224,6 +224,9 @@ abstract final class VideoHttp {
     String? language,
     bool voiceBalance = false,
   }) async {
+    // Browsers play progressive MP4 (fnval=1), which does not support
+    // 4K/HDR/Dolby qualities; asking for them returns -400 from bilibili.
+    final effectiveQn = kIsWeb && qn > 64 ? 64 : qn;
     final Map<String, dynamic> params;
     Map<String, dynamic>? data;
 
@@ -237,9 +240,13 @@ abstract final class VideoHttp {
           'ep_id': ?epid,
           'season_id': ?seasonId,
           'cid': cid,
-          'qn': qn,
-          // 获取所有格式的视频
-          'fnval': 4048,
+          'qn': effectiveQn,
+          // 浏览器无法合并 DASH 音视频轨，Web 端请求单文件 MP4
+          'fnval': kIsWeb ? 1 : 4048,
+          if (kIsWeb) ...const {
+            'platform': 'html5',
+            'high_quality': 1,
+          },
           'fourk': 1,
           'fnver': 0,
           'voice_balance': voiceBalance ? 1 : 0,
@@ -277,10 +284,10 @@ abstract final class VideoHttp {
             "ogv_season_id": seasonId,
             "ogv_episode_id": epid,
           },
-          "video_param": {"qn": qn},
-          "player_param": const {
+          "video_param": {"qn": effectiveQn},
+          "player_param": {
             "fnver": 0,
-            "fnval": 4048,
+            "fnval": kIsWeb ? 1 : 4048,
             "drm_tech_type": 0,
             "app_id": 100,
           },

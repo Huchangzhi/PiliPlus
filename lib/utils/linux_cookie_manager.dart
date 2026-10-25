@@ -4,6 +4,7 @@ import 'dart:io' show Cookie, Platform;
 import 'package:PiliPlus/plugin/linux_webview.dart';
 import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/accounts/account.dart';
+import 'package:PiliPlus/utils/platform_utils.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
 
 abstract final class LinuxCookieManager {
@@ -20,7 +21,7 @@ abstract final class LinuxCookieManager {
   }
 
   static Future<void> deleteAllCookies() async {
-    if (!Platform.isLinux) return;
+    if (!PlatformUtils.isLinux) return;
     try {
       await LinuxWebviewPlugin.clearAllCookies();
     } catch (e) {

@@ -175,7 +175,7 @@ Commit Hash: ${BuildConfig.commitHash}''',
             title: const Text('Source Code'),
             subtitle: Text(Constants.sourceCodeUrl, style: subTitleStyle),
           ),
-          if (Platform.isAndroid)
+          if (PlatformUtils.isAndroid)
             ListTile(
               onTap: AndroidHelper.openLinkVerifySettings,
               leading: const Icon(MdiIcons.linkBoxOutline),

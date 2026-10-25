@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 
 import 'package:PiliPlus/models/video/play/url.dart' show Volume;
 import 'package:PiliPlus/utils/storage_pref.dart';
+import 'package:PiliPlus/utils/platform_utils.dart';
 
 enum AudioNormalization {
   disable('禁用'),
@@ -57,7 +58,7 @@ enum AudioNormalization {
 mixin AudioNormalizationMixin {
   late final _audioNormalization = Pref.audioNormalization;
   late final enableAudioNormalization =
-      Platform.isAndroid && _audioNormalization != '0';
+      PlatformUtils.isAndroid && _audioNormalization != '0';
   late final _param = AudioNormalization.getParamFromConfig(
     _audioNormalization,
   );

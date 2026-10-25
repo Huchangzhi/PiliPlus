@@ -31,6 +31,7 @@ import 'package:PiliPlus/utils/num_utils.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/share_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/platform_utils.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -680,7 +681,7 @@ class _MusicDetailPageState extends CommonDynPageState<MusicDetailPage> {
   }
 
   void _searchMusic(MusicDetail item) {
-    if (!Platform.isAndroid ||
+    if (!PlatformUtils.isAndroid ||
         !PiliAndroidHelper.openMusic(
           item.musicTitle!,
           item.originArtist ?? item.originArtistList,

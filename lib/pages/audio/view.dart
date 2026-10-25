@@ -24,6 +24,7 @@ import 'package:PiliPlus/pages/video/introduction/ugc/widgets/action_item.dart';
 import 'package:PiliPlus/pages/video/widgets/header_control.dart'
     show HeaderControlState;
 import 'package:PiliPlus/plugin/pl_player/models/play_repeat.dart';
+import 'package:PiliPlus/plugin/pl_player/player_api.dart';
 import 'package:PiliPlus/services/shutdown_timer_service.dart';
 import 'package:PiliPlus/utils/date_utils.dart';
 import 'package:PiliPlus/utils/duration_utils.dart';
@@ -641,7 +642,7 @@ class _AudioPageState extends State<AudioPage> {
                     dense: true,
                     leading: const Icon(Icons.volume_up, size: 20),
                     title: Text(
-                      '播放器音量: ${player.getProperty('volume').subLength(3)}%',
+                      '播放器音量: ${(playerPropertyLabel(player, 'volume') ?? '--').subLength(3)}%',
                       style: const TextStyle(fontSize: 14),
                     ),
                     onTap: () {

@@ -2,6 +2,7 @@ import 'dart:io' show Platform, Process;
 
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:path/path.dart' as path;
+import 'package:PiliPlus/utils/platform_utils.dart';
 
 late final String tmpDirPath;
 
@@ -27,17 +28,17 @@ abstract final class PathUtils {
   ) {
     return shaders
         .map((shader) => path.join(baseDirectory, shader))
-        .join(Platform.isWindows ? ';' : ':');
+        .join(PlatformUtils.isWindows ? ';' : ':');
   }
 
   static Future<void> openDir(String dirPath) async {
     try {
       final String executable;
-      if (Platform.isWindows) {
+      if (PlatformUtils.isWindows) {
         executable = 'explorer';
-      } else if (Platform.isMacOS) {
+      } else if (PlatformUtils.isMacOS) {
         executable = 'open';
-      } else if (Platform.isLinux) {
+      } else if (PlatformUtils.isLinux) {
         executable = 'xdg-open';
       } else {
         throw UnimplementedError();

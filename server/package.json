@@ -1,0 +1,21 @@
+{
+  "name": "piliplus-web-proxy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Stateless HTTP relay for the PiliPlus web client",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs"
+  },
+  "dependencies": {
+    "undici": "^8.12.3",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

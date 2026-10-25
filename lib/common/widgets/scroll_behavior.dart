@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:material_ui/material_ui.dart';
+import 'package:PiliPlus/utils/platform_utils.dart';
 
 const Set<PointerDeviceKind> desktopDragDevices = {
   .touch,
@@ -28,7 +29,7 @@ class CustomScrollBehavior extends MaterialScrollBehavior {
     Widget child,
     ScrollableDetails details,
   ) {
-    if (Platform.isAndroid) {
+    if (PlatformUtils.isAndroid) {
       return StretchingOverscrollIndicator(
         axisDirection: details.direction,
         clipBehavior: details.decorationClipBehavior ?? .hardEdge,

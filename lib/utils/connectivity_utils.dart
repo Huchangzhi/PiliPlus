@@ -7,7 +7,7 @@ import 'package:nm/nm.dart';
 abstract final class ConnectivityUtils {
   static Future<bool> get isWiFi async {
     try {
-      if (Platform.isLinux) {
+      if (PlatformUtils.isLinux) {
         final client = NetworkManagerClient();
         try {
           await client.connect();

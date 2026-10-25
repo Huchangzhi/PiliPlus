@@ -7,6 +7,7 @@ import 'package:PiliPlus/common/widgets/scaffold/simple_scaffold.dart';
 import 'package:PiliPlus/common/widgets/view_sliver_safe_area.dart';
 import 'package:PiliPlus/utils/device_utils.dart';
 import 'package:PiliPlus/utils/permission_handler.dart';
+import 'package:PiliPlus/utils/platform_utils.dart';
 import 'package:dlna_dart/dlna.dart';
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
@@ -49,7 +50,7 @@ class _DLNAPageState extends State<DLNAPage> {
     }
     try {
       // PiliPlus targets API 37; older systems do not require this permission.
-      if (Platform.isAndroid && DeviceUtils.sdkInt >= 37) {
+      if (PlatformUtils.isAndroid && DeviceUtils.sdkInt >= 37) {
         final status = await Permission.accessLocalNetwork.request();
         if (!mounted) return;
         _permissionStatus = status;

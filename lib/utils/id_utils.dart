@@ -9,7 +9,7 @@ import 'package:uuid/v4.dart';
 abstract final class IdUtils {
   static const XOR_CODE = 23442827791579;
   static const MASK_CODE = 2251799813685247;
-  static const MAX_AID = 1 << 51;
+  static const MAX_AID = 2251799813685248; // 1 << 51, JS-safe
   static const BASE = 58;
 
   static const data =
@@ -29,7 +29,11 @@ abstract final class IdUtils {
   static String av2bv(int aid) {
     final bytes = ['B', 'V', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0'];
     int bvIndex = bytes.length - 1;
-    int tmp = (MAX_AID | aid) ^ XOR_CODE;
+    // Dart web bitwise operators truncate to 32 bits. BigInt preserves the
+    // 64-bit semantics required by the av -> bv algorithm.
+    int tmp = ((BigInt.from(MAX_AID) | BigInt.from(aid)) ^
+            BigInt.from(XOR_CODE))
+        .toInt();
     while (tmp > 0) {
       bytes[bvIndex--] = data[tmp % BASE];
       tmp ~/= BASE;
@@ -48,8 +52,11 @@ abstract final class IdUtils {
       ..swap(0, 6)
       ..swap(1, 4);
 
-    final tmp = bvidArr.fold(0, (pre, char) => pre * BASE + invData[char]!);
-    return (tmp & MASK_CODE) ^ XOR_CODE;
+    var tmp = BigInt.zero;
+    for (final char in bvidArr) {
+      tmp = tmp * BigInt.from(BASE) + BigInt.from(invData[char]!);
+    }
+    return ((tmp & BigInt.from(MASK_CODE)) ^ BigInt.from(XOR_CODE)).toInt();
   }
 
   // 匹配

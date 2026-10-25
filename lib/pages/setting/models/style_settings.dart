@@ -67,7 +67,7 @@ List<SettingsModel> get styleSettings => [
       needReboot: true,
     ),
   ],
-  if (Platform.isLinux) _useSSDModel(),
+  if (PlatformUtils.isLinux) _useSSDModel(),
   SwitchModel(
     title: '横屏适配',
     subtitle: '启用横屏布局与逻辑，平板、折叠屏等可开启；建议全屏方向设为【不改变当前方向】',
@@ -419,7 +419,7 @@ List<SettingsModel> get styleSettings => [
     defaultVal: false,
     onChanged: (value) => Get.find<MainController>().directExitOnBack = value,
   ),
-  if (Platform.isAndroid)
+  if (PlatformUtils.isAndroid)
     NormalModel(
       onTap: (context, setState) => Get.toNamed('/displayModeSetting'),
       title: '屏幕帧率',

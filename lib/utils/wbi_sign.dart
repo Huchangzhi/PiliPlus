@@ -16,6 +16,8 @@ import 'package:hive_ce/hive.dart';
 abstract final class WbiSign {
   static Box get _localCache => GStorage.localCache;
   static final RegExp _chrFilter = RegExp(r"[!\'\(\)\*]");
+  static const _mixinKeyLength = 32;
+
   static const _mixinKeyEncTab = <int>[
     46,
     47,
@@ -60,6 +62,9 @@ abstract final class WbiSign {
 
   // 为请求参数进行 wbi 签名
   static void encWbi(Map<String, Object> params, String mixinKey) {
+    // An invalid key produces a signature bilibili rejects with -400. These
+    // endpoints also accept unsigned requests, so skip signing instead.
+    if (mixinKey.length != _mixinKeyLength) return;
     params['wts'] = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     // 按照 key 重排参数
     final List<String> keys = params.keys.toList()..sort();
@@ -75,19 +80,21 @@ abstract final class WbiSign {
   }
 
   static Future<String> _getWbiKeys() async {
-    final resp = await Request().get(Api.userInfo);
     try {
+      final resp = await Request().get(Api.userInfo);
       final wbiUrls = resp.data['data']['wbi_img'];
-
       final mixinKey = getMixinKey(
         Utils.getFileName(wbiUrls['img_url'], fileExt: false) +
             Utils.getFileName(wbiUrls['sub_url'], fileExt: false),
       );
-
-      _localCache.put(LocalCacheKey.mixinKey, mixinKey);
-
+      if (mixinKey.length != _mixinKeyLength) {
+        throw StateError('invalid WBI key');
+      }
+      await _localCache.put(LocalCacheKey.mixinKey, mixinKey);
       return mixinKey;
     } catch (_) {
+      await _localCache.delete(LocalCacheKey.mixinKey);
+      await _localCache.delete(LocalCacheKey.timeStamp);
       return '';
     }
   }
@@ -99,8 +106,13 @@ abstract final class WbiSign {
         ).day ==
         nowDate.day) {
       final String? mixinKey = _localCache.get(LocalCacheKey.mixinKey);
-      if (mixinKey != null) return mixinKey;
-      return _future ??= _getWbiKeys();
+      if (mixinKey != null && mixinKey.length == _mixinKeyLength) {
+        return mixinKey;
+      }
+      return _future ??= _getWbiKeys().then((key) {
+        if (key.isEmpty) _future = null;
+        return key;
+      });
     } else {
       return _future = _localCache
           .put(LocalCacheKey.timeStamp, nowDate.millisecondsSinceEpoch)

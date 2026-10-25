@@ -9,6 +9,7 @@ import 'package:PiliPlus/pages/setting/models/play_settings.dart'
     show showPlayerVolumeDialog;
 import 'package:PiliPlus/pages/video/widgets/header_control.dart';
 import 'package:PiliPlus/plugin/pl_player/controller.dart';
+import 'package:PiliPlus/plugin/pl_player/player_api.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/common_btn.dart';
 import 'package:PiliPlus/services/shutdown_timer_service.dart'
     show shutdownTimerService;
@@ -163,8 +164,8 @@ class _LiveHeaderControlState extends State<LiveHeaderControl>
               ),
               onTap: widget.onSendDanmaku,
             ),
-          if ((Platform.isAndroid && PiliAndroidHelper.isPipAvailable) ||
-              (Platform.isIOS && IOSPipHelper.isAvailable) ||
+          if ((PlatformUtils.isAndroid && PiliAndroidHelper.isPipAvailable) ||
+              (PlatformUtils.isIOS && IOSPipHelper.isAvailable) ||
               (PlatformUtils.isDesktop && !isFullScreen))
             ComBtn(
               height: btnHeight,
@@ -279,7 +280,7 @@ class _LiveHeaderControlState extends State<LiveHeaderControl>
                         children: [
                           const Icon(Icons.volume_up, size: 17),
                           Text(
-                            '播放器音量: ${player.getProperty('volume').subLength(3)}%',
+                            '播放器音量: ${(playerPropertyLabel(player, 'volume') ?? '--').subLength(3)}%',
                             style: const TextStyle(fontSize: 14),
                           ),
                         ],

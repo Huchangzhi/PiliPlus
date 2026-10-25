@@ -13,6 +13,7 @@ import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_key.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/video_utils.dart';
+import 'package:PiliPlus/utils/platform_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -136,7 +137,7 @@ List<SettingsModel> get videoSettings => [
         '首选解码格式：${(Pref.preferCodecsCellular.map((i) => i.name).join(","))}，请根据设备支持情况与需求调整',
     onTap: _showCellularCodecsDialog,
   ),
-  if (kDebugMode || Platform.isAndroid)
+  if (kDebugMode || PlatformUtils.isAndroid)
     NormalModel(
       title: '音频输出设备',
       leading: const Icon(Icons.speaker_outlined),

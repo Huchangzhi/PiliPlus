@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
+import 'dart:ui' show clampDouble;
 
 import 'package:PiliPlus/common/assets.dart';
 import 'package:PiliPlus/common/constants.dart';
@@ -48,6 +49,7 @@ import 'package:PiliPlus/plugin/pl_player/widgets/bottom_control.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/common_btn.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/forward_seek.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/mpv_convert_webp.dart';
+import 'package:PiliPlus/plugin/pl_player/widgets/simple_video.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/play_pause_btn.dart';
 import 'package:PiliPlus/utils/android/bindings.g.dart';
 import 'package:PiliPlus/utils/cache_manager.dart';
@@ -70,7 +72,7 @@ import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:collection/collection.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart'
     show RenderProxyBox, SemanticsConfiguration;
@@ -178,7 +180,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
   void _onVolumeChanged(double value) {
     if (mounted && !plPlayerController.volumeInterceptEventStream) {
       plPlayerController.volume.value = value;
-      if (Platform.isIOS && !FlutterVolumeController.showSystemUI) {
+      if (PlatformUtils.isIOS && !FlutterVolumeController.showSystemUI) {
         plPlayerController
           ..volumeIndicator.value = true
           ..volumeTimer?.cancel()
@@ -289,7 +291,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
         } catch (_) {}
 
         try {
-          if (Platform.isIOS || plPlayerController.setSystemBrightness) {
+          if (PlatformUtils.isIOS || plPlayerController.setSystemBrightness) {
             _getSystemBrightness();
             _brightnessListener = ScreenBrightnessPlatform
                 .instance
@@ -341,7 +343,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Keep playing in the PiP window.
-    if (Platform.isIOS && IOSPipHelper.isActive) return;
+    if (PlatformUtils.isIOS && IOSPipHelper.isActive) return;
     if (!plPlayerController.continuePlayInBackground.value) {
       late final player = plPlayerController.videoPlayerController;
       if (const <AppLifecycleState>[.paused, .detached].contains(state)) {
@@ -361,7 +363,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
   Future<void> setBrightness(double value) async {
     _brightnessValue.value = value;
     try {
-      if (Platform.isIOS || plPlayerController.setSystemBrightness) {
+      if (PlatformUtils.isIOS || plPlayerController.setSystemBrightness) {
         await ScreenBrightnessPlatform.instance.setSystemScreenBrightness(
           value,
         );
@@ -929,7 +931,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
   @override
   void didUpdateWidget(covariant PLVideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (Platform.isAndroid && AndroidHelper.isPipMode) {
+    if (PlatformUtils.isAndroid && AndroidHelper.isPipMode) {
       plPlayerController.controls = false;
     }
   }
@@ -1368,8 +1370,6 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                 () => SubtitleView(
                   controller: videoController,
                   configuration: plPlayerController.subtitleConfig.value,
-                  enableDragSubtitle: plPlayerController.enableDragSubtitle,
-                  onUpdatePadding: plPlayerController.onUpdatePadding,
                 ),
               ),
             ),
@@ -1861,7 +1861,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                             color: Colors.white,
                           ),
                           onLongPress:
-                              (Platform.isAndroid || kDebugMode) && !isLive
+                              (PlatformUtils.isAndroid || kDebugMode) && !isLive
                               ? _screenshotWebp
                               : null,
                           onTap: plPlayerController.takeScreenshot,
@@ -2041,17 +2041,23 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
             child: Obx(
               () {
                 final videoFit = plPlayerController.videoFit.value;
+                final video = SimpleVideo(
+                  controller: plPlayerController.videoController!,
+                  fill: widget.fill,
+                  aspectRatio: videoFit.aspectRatio,
+                );
+                if (kIsWeb) {
+                  // The DOM video element cannot be scaled by Flutter
+                  // transforms; let it fill the player viewport instead.
+                  return video;
+                }
                 return Transform.flip(
                   flipX: plPlayerController.flipX.value,
                   flipY: plPlayerController.flipY.value,
                   child: FittedBox(
                     fit: videoFit.boxFit,
                     alignment: widget.alignment,
-                    child: SimpleVideo(
-                      controller: plPlayerController.videoController!,
-                      fill: widget.fill,
-                      aspectRatio: videoFit.aspectRatio,
-                    ),
+                    child: video,
                   ),
                 );
               },

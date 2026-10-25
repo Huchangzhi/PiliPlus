@@ -26,7 +26,7 @@ import 'package:share_plus/share_plus.dart';
 
 abstract final class ImageUtils {
   static bool silentDownImg = Pref.silentDownImg;
-  static final _albumPath = Platform.isAndroid
+  static final _albumPath = PlatformUtils.isAndroid
       ? 'Pictures/${Constants.appName}'
       : Constants.appName;
 
@@ -51,7 +51,7 @@ abstract final class ImageUtils {
 
   // 获取存储权限
   static Future<bool> requestPer() async {
-    final status = Platform.isAndroid
+    final status = PlatformUtils.isAndroid
         ? await Permission.storage.request()
         : await Permission.photos.request();
     if (status == PermissionStatus.denied ||
@@ -78,7 +78,7 @@ abstract final class ImageUtils {
   }
 
   static FutureOr<bool> checkPermissionDependOnSdkInt() {
-    if (Platform.isAndroid) {
+    if (PlatformUtils.isAndroid) {
       if (DeviceUtils.sdkInt < 29) {
         return requestPer();
       } else {
@@ -106,7 +106,7 @@ abstract final class ImageUtils {
       final res = await Request().downloadFile(liveUrl.http2https, videoPath);
       if (res.statusCode != 200) throw '${res.statusCode}';
 
-      if (Platform.isIOS) {
+      if (PlatformUtils.isIOS) {
         final imageFile = await CacheManager.manager.getSingleFile(
           url.http2https,
         );

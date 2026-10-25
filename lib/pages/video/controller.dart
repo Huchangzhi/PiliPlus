@@ -47,6 +47,7 @@ import 'package:PiliPlus/pages/video/post_panel/view.dart';
 import 'package:PiliPlus/pages/video/send_danmaku/view.dart';
 import 'package:PiliPlus/pages/video/widgets/header_control.dart';
 import 'package:PiliPlus/plugin/pl_player/controller.dart';
+import 'package:PiliPlus/plugin/pl_player/player_api.dart';
 import 'package:PiliPlus/plugin/pl_player/models/data_source.dart';
 import 'package:PiliPlus/plugin/pl_player/models/heart_beat_type.dart';
 import 'package:PiliPlus/plugin/pl_player/models/play_status.dart';
@@ -69,7 +70,7 @@ import 'package:collection/collection.dart';
 import 'package:dio/dio.dart' show Options;
 import 'package:extended_nested_scroll_view/extended_nested_scroll_view.dart'
     show ExtendedNestedScrollViewState;
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:get/get.dart';
@@ -155,7 +156,7 @@ class VideoDetailController extends GetxController
     final player = plPlayerController.videoPlayerController;
     if (player == null) return;
     _rotate = value;
-    player.setProperty('video-rotate', _rotate.toString());
+    setPlayerProperty(player, 'video-rotate', _rotate.toString());
   }
 
   late final headerCtrKey = GlobalKey<TimeBatteryMixin>();
@@ -862,7 +863,7 @@ class VideoDetailController extends GetxController
     if (plPlayerController.enableSponsorBlock && isBlock && !fromReset) {
       querySponsorBlock(bvid: bvid, cid: cid.value);
     }
-    if (PlatformUtils.isMobile || Platform.isLinux) {
+    if (PlatformUtils.isMobile || PlatformUtils.isLinux) {
       final isWiFi = await ConnectivityUtils.isWiFi;
       if (plPlayerController.cacheVideoQa == null) {
         plPlayerController
@@ -913,7 +914,7 @@ class VideoDetailController extends GetxController
       if (dash == null) {
         if (data.durl case final durl?) {
           // it will cause all files to be opened simultaneously
-          if (durl.length > 1) {
+          if (durl.length > 1 && !kIsWeb) {
             // TODO: refa
             final sb = StringBuffer('edl://!no_chapters;');
             for (var i in durl) {

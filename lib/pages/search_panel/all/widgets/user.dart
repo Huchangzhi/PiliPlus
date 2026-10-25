@@ -158,7 +158,7 @@ Widget _buildVideoItem(
         onTap: () => pushVideoH(video),
         onLongPress: PlatformUtils.isMobile
             ? () {
-                Platform.isIOS
+                PlatformUtils.isIOS
                     ? HapticFeedback.heavyImpact()
                     : HapticFeedback.vibrate();
                 onLongPress();

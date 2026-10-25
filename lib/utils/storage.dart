@@ -12,6 +12,8 @@ import 'package:PiliPlus/utils/path_utils.dart';
 import 'package:PiliPlus/utils/set_int_adapter.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/utils.dart';
+import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:hive_ce/hive.dart';
 import 'package:path/path.dart' as path;
 
@@ -25,7 +27,9 @@ abstract final class GStorage {
   static late final Box<Uint8List>? reply;
 
   static Future<void> init() async {
-    Hive.init(path.join(appSupportDirPath, 'hive'));
+    if (!kIsWeb) {
+      Hive.init(path.join(appSupportDirPath, 'hive'));
+    }
     regAdapter();
 
     await Future.wait([

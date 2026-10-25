@@ -18,6 +18,7 @@ import 'package:PiliPlus/utils/android/bindings.g.dart';
 import 'package:PiliPlus/utils/image_utils.dart';
 import 'package:PiliPlus/utils/path_utils.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
+import 'package:PiliPlus/utils/platform_utils.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_service_mpris/audio_service_mpris.dart';
 import 'package:collection/collection.dart';
@@ -27,7 +28,7 @@ import 'package:get/get_instance/src/extension_instance.dart';
 import 'package:path/path.dart' as path;
 
 Future<VideoPlayerServiceHandler> initAudioService() {
-  if (Platform.isLinux) {
+  if (PlatformUtils.isLinux) {
     AudioServiceMpris.init(
       dBusName: 'com.example.piliplus.audio',
       identity: 'Audio Service ${Constants.appName}',
@@ -223,7 +224,7 @@ class VideoPlayerServiceHandler extends BaseAudioHandler with SeekHandler {
         systemActions: const {.seek},
       ),
     );
-    if (Platform.isAndroid &&
+    if (PlatformUtils.isAndroid &&
         (AndroidHelper.isPipMode ||
             PlPlayerController.instance?.isAutoEnterPip == true)) {
       AndroidHelper.updatePipActions(

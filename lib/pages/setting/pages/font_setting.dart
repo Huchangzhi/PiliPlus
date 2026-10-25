@@ -12,6 +12,7 @@ import 'package:PiliPlus/utils/font_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_key.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
+import 'package:PiliPlus/utils/platform_utils.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
@@ -179,9 +180,9 @@ class _FontSettingPageState extends State<FontSettingPage> {
                   'abcdefghijklmnopqrstuvwxyz\n'
                   'ABCDEFGHIJKLMNOPQRSTUVWXYZ\n'
                   '1234567890.:,;\'"(!?)+-*/=\n'
-                  '${Platform.isWindows
+                  '${PlatformUtils.isWindows
                       ? "中国智造，惠及全球"
-                      : Platform.isMacOS || Platform.isIOS
+                      : PlatformUtils.isMacOS || PlatformUtils.isIOS
                       ? "汉体书写信息技术标准相容"
                       : "我能吞下玻璃而不伤身体"}\n\n'
                   '注：部分字体可能无法应用',

@@ -35,14 +35,14 @@ List<SettingsModel> get playSettings => [
     title: '倍速设置',
     subtitle: '设置视频播放速度',
   ),
-  if (kDebugMode || Platform.isAndroid)
+  if (kDebugMode || PlatformUtils.isAndroid)
     NormalModel(
       onTap: _showAngleDegreesDialog,
       leading: const Icon(MdiIcons.angleAcute),
       title: '倾斜角度阈值',
       getSubtitle: () => '当前:「${Pref.angleDegrees}°」',
     ),
-  if (kDebugMode || Platform.isAndroid)
+  if (kDebugMode || PlatformUtils.isAndroid)
     NormalModel(
       title: '音量均衡',
       leading: const Icon(Icons.multitrack_audio),
@@ -112,7 +112,7 @@ List<SettingsModel> get playSettings => [
     setKey: SettingBoxKey.enableScrollVolume,
     defaultVal: true,
   ),
-  if (Platform.isAndroid)
+  if (PlatformUtils.isAndroid)
     const SwitchModel(
       title: '调节系统亮度',
       leading: Icon(Icons.brightness_6_outlined),
@@ -327,15 +327,15 @@ List<SettingsModel> get playSettings => [
       setKey: SettingBoxKey.continuePlayInBackground,
       defaultVal: false,
     ),
-  if ((Platform.isAndroid && PiliAndroidHelper.isPipAvailable) ||
-      (Platform.isIOS && IOSPipHelper.isAvailable))
+  if ((PlatformUtils.isAndroid && PiliAndroidHelper.isPipAvailable) ||
+      (PlatformUtils.isIOS && IOSPipHelper.isAvailable))
     SwitchModel(
       title: '后台画中画',
       subtitle: '进入后台时以小窗形式（PiP）播放',
       leading: const Icon(Icons.picture_in_picture_outlined),
       setKey: SettingBoxKey.autoPiP,
       defaultVal: false,
-      onChanged: Platform.isAndroid
+      onChanged: PlatformUtils.isAndroid
           ? (val) {
               if (val && !videoPlayerServiceHandler!.enableBackgroundPlay) {
                 SmartDialog.showToast('建议开启后台音频服务');
@@ -344,7 +344,7 @@ List<SettingsModel> get playSettings => [
           : null,
     ),
   // PiP on iOS only shows the video frames, without danmaku.
-  if (Platform.isAndroid)
+  if (PlatformUtils.isAndroid)
     const SwitchModel(
       title: '画中画不加载弹幕',
       subtitle: '当弹幕开关开启时，小窗屏蔽弹幕以获得较好的体验',

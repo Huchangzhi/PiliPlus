@@ -11,7 +11,7 @@ import 'package:share_plus/share_plus.dart';
 abstract final class ShareUtils {
   static bool? _isIpad;
   static Future<bool> get isIpad async {
-    if (!Platform.isIOS) return false;
+    if (!PlatformUtils.isIOS) return false;
     return _isIpad ??= (await DeviceInfoPlugin().iosInfo).model
         .toLowerCase()
         .contains('ipad');

@@ -1,7 +1,8 @@
 import 'dart:async';
 
+import 'package:PiliPlus/http/transport_error_io.dart'
+    if (dart.library.js_interop) 'package:PiliPlus/http/transport_error_web.dart';
 import 'package:dio/dio.dart';
-import 'package:http2/http2.dart';
 
 class RetryInterceptor extends Interceptor {
   final Dio _client;
@@ -57,8 +58,7 @@ class RetryInterceptor extends Interceptor {
         case DioExceptionType.sendTimeout:
         case DioExceptionType.unknown:
           if ((err.requestOptions.extra['_rt'] ??= 0) < _count &&
-              err.error
-                  is! TransportConnectionException // 网络中断, 此时请求可能已经被服务器所接收
+              !isTransportConnectionError(err.error)
                   ) {
             Timer(
               Duration(

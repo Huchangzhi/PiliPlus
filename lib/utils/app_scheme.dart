@@ -41,6 +41,7 @@ abstract final class PiliScheme {
   static final _prefixRegex = RegExp(r'^\S+://');
 
   static void init() {
+    if (kIsWeb) return;
     // Register our protocol only on Windows platform
     // registerProtocolHandler('bilibili');
     appLinks = AppLinks();

@@ -30,6 +30,7 @@ import 'package:PiliPlus/utils/path_utils.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/theme_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart' hide TextField;
@@ -338,19 +339,19 @@ class _ReplyPageState extends CommonRichTextPubPageState<ReplyPage> {
                     final plPlayerController = Get.find<VideoDetailController>(
                       tag: heroTag,
                     );
-                    final res = await plPlayerController
+                    if (kIsWeb) {
+                      SmartDialog.showToast('Web 端暂不支持此功能');
+                      return;
+                    }
+                    final png = await plPlayerController
                         .plPlayerController
                         .videoPlayerController
                         ?.screenshot();
-                    if (res != null) {
-                      final png = await res.toByteData(format: .png);
-                      if (png != null) {
-                        final path =
-                            '$tmpDirPath/${Utils.generateRandomString(8)}.png';
-                        await File(path).writeAsBytes(png.buffer.asUint8List());
-                        imageList.add(FilePicModel(path: path));
-                      }
-                      res.dispose();
+                    if (png != null) {
+                      final path =
+                          '$tmpDirPath/${Utils.generateRandomString(8)}.png';
+                      await File(path).writeAsBytes(png);
+                      imageList.add(FilePicModel(path: path));
                     } else {
                       debugPrint('null screenshot');
                     }

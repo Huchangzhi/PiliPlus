@@ -27,6 +27,7 @@ import 'package:PiliPlus/pages/sponsor_block/block_mixin.dart';
 import 'package:PiliPlus/pages/video/controller.dart';
 import 'package:PiliPlus/pages/video/introduction/ugc/widgets/triple_mixin.dart';
 import 'package:PiliPlus/plugin/pl_player/controller.dart';
+import 'package:PiliPlus/plugin/pl_player/player_api.dart';
 import 'package:PiliPlus/plugin/pl_player/models/play_repeat.dart';
 import 'package:PiliPlus/plugin/pl_player/models/play_status.dart';
 import 'package:PiliPlus/services/service_locator.dart';
@@ -362,13 +363,11 @@ class AudioController extends GetxController
   }) async {
     await _initPlayerIfNeeded();
     final extras = audioFilterExtras(volume);
-    player
-      ?..setMediaHeader(
-        userAgent: ua,
-        // mpv cannot clear referer option
-        headers: {'Referer': ?referer},
-      )
-      ..open(Media(url, start: _start, extras: extras));
+    final currentPlayer = player;
+    if (currentPlayer != null) {
+      setMediaHeaders(currentPlayer, userAgent: ua, referer: referer ?? '');
+      await currentPlayer.open(Media(maybeProxyMediaUrl(url), start: _start, extras: extras));
+    }
     _start = null;
   }
 
@@ -388,16 +387,8 @@ class AudioController extends GetxController
     if (_hasInit) return;
     _hasInit = true;
     assert(player == null, _subscriptions = null);
-    player = await Player.create(
-      configuration: PlayerConfiguration(
-        options: {
-          if (Platform.isAndroid) 'ao': Pref.audioOutput,
-          'volume': PlatformUtils.isDesktop
-              ? (desktopVolume.value * 100).toString()
-              : Pref.playerVolume.toString(),
-          ...Pref.initBuffer(),
-        },
-      ),
+    player = Player(
+      configuration: PlayerConfiguration(),
     );
     if (isClosed) {
       player!.dispose();

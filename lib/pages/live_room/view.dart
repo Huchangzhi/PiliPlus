@@ -2,6 +2,8 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'package:PiliPlus/common/assets.dart';
 import 'package:PiliPlus/common/style.dart';
 import 'package:PiliPlus/common/widgets/button/icon_button.dart';
@@ -24,6 +26,7 @@ import 'package:PiliPlus/pages/live_room/contribution_rank/view.dart';
 import 'package:PiliPlus/pages/live_room/controller.dart';
 import 'package:PiliPlus/pages/live_room/superchat/superchat_card.dart';
 import 'package:PiliPlus/pages/live_room/superchat/superchat_panel.dart';
+import 'package:PiliPlus/pages/live_room/web_live.dart';
 import 'package:PiliPlus/pages/live_room/widgets/bottom_control.dart';
 import 'package:PiliPlus/pages/live_room/widgets/chat_panel.dart';
 import 'package:PiliPlus/pages/live_room/widgets/header_control.dart';
@@ -197,7 +200,7 @@ class _LiveRoomPageState extends State<LiveRoomPage>
   void dispose() {
     removeObserverMobile(this);
     videoPlayerServiceHandler?.onVideoDetailDispose(heroTag);
-    if (Platform.isAndroid && !plPlayerController.setSystemBrightness) {
+    if (PlatformUtils.isAndroid && !plPlayerController.setSystemBrightness) {
       ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();
     }
     PlPlayerController.setPlayCallBack(null);
@@ -238,7 +241,7 @@ class _LiveRoomPageState extends State<LiveRoomPage>
   @override
   Widget build(BuildContext context) {
     Widget child;
-    if (Platform.isAndroid && AndroidHelper.isPipMode) {
+    if (PlatformUtils.isAndroid && AndroidHelper.isPipMode) {
       child = videoPlayerPanel(
         isFullScreen,
         width: maxWidth,
@@ -278,10 +281,48 @@ class _LiveRoomPageState extends State<LiveRoomPage>
       _liveRoomController.fsSC.value = null;
     }
     _liveRoomController.isFullScreen = isFullScreen;
-    Widget player = Obx(
-      key: playerKey,
-      () {
-        if (_liveRoomController.isLoaded.value && plPlayerController.isLive) {
+    Widget player = kIsWeb
+        ? Obx(() {
+            final liveUrl = _liveRoomController.webLiveUrl.value;
+            if (liveUrl == null || liveUrl.isEmpty) {
+              return Container(
+                width: width,
+                height: height,
+                color: Colors.black,
+                alignment: Alignment.center,
+                child: const Text(
+                  '正在获取直播流…',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+              );
+            }
+            return SizedBox(
+              width: width,
+              height: height,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  WebLivePlayer(url: liveUrl),
+                  if (needDm)
+                    IgnorePointer(
+                      child: LiveDanmaku(
+                        liveRoomController: _liveRoomController,
+                        plPlayerController: plPlayerController,
+                        isFullScreen: isFullScreen,
+                        isPipMode:
+                            plPlayerController.isDesktopPip || isPipMode,
+                        size: Size(width, height),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          })
+        : Obx(
+            key: playerKey,
+            () {
+              if (_liveRoomController.isLoaded.value &&
+                  plPlayerController.isLive) {
           final roomInfoH5 = _liveRoomController.roomInfoH5.value;
           return PLVideoPlayer(
             maxWidth: width,

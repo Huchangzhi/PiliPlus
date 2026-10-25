@@ -2,6 +2,7 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:PiliPlus/utils/platform_utils.dart';
 
 enum HwDecType {
   no('no', '启用软解'),
@@ -42,7 +43,7 @@ enum HwDecType {
   final String desc;
   const HwDecType(this.hwdec, this.desc);
 
-  static final String kHwdec = Platform.isAndroid
+  static final String kHwdec = PlatformUtils.isAndroid
       ? kDebugMode
             ? autoSafe.hwdec
             : [mediacodec.hwdec, autoSafe.hwdec].join(',')

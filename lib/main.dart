@@ -17,7 +17,7 @@ import 'package:PiliPlus/services/logger.dart';
 import 'package:PiliPlus/services/service_locator.dart';
 import 'package:PiliPlus/utils/cache_manager.dart';
 import 'package:PiliPlus/utils/date_utils.dart';
-import 'package:PiliPlus/utils/desktop/calc_window_position.dart';
+import 'package:PiliPlus/utils/desktop/app_window.dart';
 import 'package:PiliPlus/utils/device_utils.dart';
 import 'package:PiliPlus/utils/extension/core_palettes_ext.dart';
 import 'package:PiliPlus/utils/extension/theme_ext.dart';
@@ -33,6 +33,10 @@ import 'package:PiliPlus/utils/storage_key.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/theme_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/web_buvid.dart';
+import 'package:PiliPlus/utils/web_cache_manager.dart';
+import 'package:PiliPlus/utils/web_proxy.dart';
+import 'package:cached_network_image_ce/cached_network_image.dart' show CachedNetworkImageProvider;
 import 'package:catcher_2/catcher_2.dart';
 import 'package:collection/collection.dart';
 import 'package:dynamic_color/dynamic_color.dart' show DynamicColorPlugin;
@@ -47,13 +51,16 @@ import 'package:media_kit/media_kit.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
-import 'package:window_manager/window_manager.dart';
 
 WebViewEnvironment? webViewEnvironment;
 
 EdgeInsets? tmpPadding;
 
 Future<void> _initDownPath() async {
+  if (kIsWeb) {
+    downloadPath = '';
+    return;
+  }
   if (PlatformUtils.isDesktop) {
     final customDownPath = Pref.downloadPath;
     if (customDownPath != null && customDownPath.isNotEmpty) {
@@ -73,7 +80,7 @@ Future<void> _initDownPath() async {
     } else {
       downloadPath = defDownloadPath;
     }
-  } else if (Platform.isAndroid) {
+  } else if (PlatformUtils.isAndroid) {
     final externalStorageDirPath = (await getExternalStorageDirectory())?.path;
     downloadPath = externalStorageDirPath != null
         ? path.join(externalStorageDirPath, PathUtils.downloadDir)
@@ -84,10 +91,18 @@ Future<void> _initDownPath() async {
 }
 
 Future<void> _initTmpPath() async {
+  if (kIsWeb) {
+    tmpDirPath = '';
+    return;
+  }
   tmpDirPath = (await getTemporaryDirectory()).path;
 }
 
 Future<void> _initAppPath() async {
+  if (kIsWeb) {
+    appSupportDirPath = '';
+    return;
+  }
   appSupportDirPath = (await getApplicationSupportDirectory()).path;
 }
 
@@ -102,26 +117,41 @@ void main() async {
     if (kDebugMode) debugPrint('GStorage init error: $e');
     DeviceUtils.exitApp();
   }
+  if (kIsWeb) {
+    final server = Uri.base.queryParameters['server'];
+    if (server != null && server.trim().isNotEmpty) {
+      await GStorage.setting.put(
+        SettingBoxKey.webApiServer,
+        server.trim(),
+      );
+    }
+    CachedNetworkImageProvider.webImageUrlTransformer =
+        (url) => maybeProxyUrl(url) ?? url;
+    CachedNetworkImageProvider.defaultCacheManager =
+        const WebCacheManager();
+  }
   ScaledWidgetsFlutterBinding.instance.scaleFactor = Pref.uiScale;
   await Future.wait([
     _initDownPath(),
     _initTmpPath(),
-    CacheManager.ensureInitialized(),
-    ?FontUtils.init(),
+    if (!kIsWeb) ...[
+      CacheManager.ensureInitialized(),
+      ?FontUtils.init(),
+    ],
   ]);
   Get
     ..lazyPut(AccountService.new)
     ..lazyPut(DownloadService.new);
-  HttpOverrides.global = _CustomHttpOverrides();
+  if (!kIsWeb) HttpOverrides.global = _CustomHttpOverrides();
 
   if (PlatformUtils.isMobile) {
-    if (Platform.isAndroid) MaxScreenSize.init();
+    if (PlatformUtils.isAndroid) MaxScreenSize.init();
     await Future.wait([
       if (Pref.horizontalScreen) ?fullMode() else ?portraitUpMode(),
       setupServiceLocator(),
-      if (Platform.isIOS) IOSPipHelper.init(),
+      if (PlatformUtils.isIOS) IOSPipHelper.init(),
     ]);
-  } else if (Platform.isWindows) {
+  } else if (PlatformUtils.isWindows) {
     if (await WebViewEnvironment.getAvailableVersion() != null) {
       webViewEnvironment = await WebViewEnvironment.create(
         settings: WebViewEnvironmentSettings(
@@ -129,12 +159,15 @@ void main() async {
         ),
       );
     }
-  } else if (Platform.isMacOS || Platform.isLinux) {
+  } else if (PlatformUtils.isMacOS || PlatformUtils.isLinux) {
     await setupServiceLocator();
   }
 
   Request();
   Request.setCookie();
+  if (kIsWeb) {
+    await ensureWebBuvid();
+  }
   RequestUtils.syncHistoryStatus();
 
   SmartDialog.config.toast = SmartConfigToast(displayType: .onlyRefresh);
@@ -151,7 +184,7 @@ void main() async {
         systemNavigationBarContrastEnforced: false,
       ),
     );
-    if (Platform.isAndroid) {
+    if (PlatformUtils.isAndroid) {
       FlutterDisplayMode.supported.then((mode) {
         final String? storageDisplay = GStorage.setting.get(
           SettingBoxKey.displayMode,
@@ -169,11 +202,11 @@ void main() async {
     }
   }
 
-  if (Pref.dynamicColor) {
+  if (!kIsWeb && Pref.dynamicColor) {
     await MyApp.initPlatformState();
   }
 
-  if (Pref.enableLog) {
+  if (Pref.enableLog && !kIsWeb) {
     // 异常捕获 logo记录
     final customParameters = {
       'Build Time': DateFormatUtils.format(
@@ -181,8 +214,6 @@ void main() async {
         format: DateFormatUtils.longFormatDs,
       ),
       'Commit Hash': BuildConfig.commitHash,
-      'MPV Api Version':
-          '${NativePlayer.apiVersion >> 16}.${NativePlayer.apiVersion & 0xFFFF}',
     };
     final fileHandler = await JsonFileHandler.init();
 
@@ -197,26 +228,7 @@ void main() async {
   }
 
   if (PlatformUtils.isDesktop) {
-    final window = WindowManager.instance.getCurrent();
-    if (window != null) {
-      window
-        ..titleBarStyle = Pref.showWindowTitleBar ? .normal : .hidden
-        ..isWindowControlButtonsVisible = true
-        ..bounds = calcWindowBounds()
-        ..minimumSize = DeviceUtils.desktopMinSize
-        ..isVisibleInTaskbar = true
-        ..title = Constants.appName;
-      if (Pref.isWindowMaximized) window.maximize();
-      void show([_]) => window
-        ..focus()
-        ..show();
-      switch (WidgetsBinding.instance.schedulerPhase) {
-        case .idle || .postFrameCallbacks:
-          WidgetsBinding.instance.scheduleFrameCallback(show);
-        case .transientCallbacks || .midFrameMicrotasks || .persistentCallbacks:
-          WidgetsBinding.instance.addPostFrameCallback(show);
-      }
-    }
+    await initDesktopWindow();
   }
 }
 

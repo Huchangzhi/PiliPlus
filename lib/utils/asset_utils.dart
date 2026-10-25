@@ -3,18 +3,19 @@ import 'dart:io' show Platform, Directory, File;
 
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path/path.dart' as path;
+import 'package:PiliPlus/utils/platform_utils.dart';
 
 abstract final class AssetUtils {
   /// from media-kit AssetLoader
   static String? tryGetPath(String key) {
-    if (Platform.isWindows || Platform.isLinux) {
+    if (PlatformUtils.isWindows || PlatformUtils.isLinux) {
       return path.join(
         path.dirname(Platform.resolvedExecutable),
         'data',
         'flutter_assets',
         key,
       );
-    } else if (Platform.isMacOS) {
+    } else if (PlatformUtils.isMacOS) {
       return path.join(
         path.dirname(Platform.resolvedExecutable),
         '..',
@@ -24,7 +25,7 @@ abstract final class AssetUtils {
         'flutter_assets',
         key,
       );
-    } else if (Platform.isIOS) {
+    } else if (PlatformUtils.isIOS) {
       return path.join(
         path.dirname(Platform.resolvedExecutable),
         'Frameworks',

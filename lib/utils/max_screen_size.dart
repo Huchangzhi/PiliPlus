@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 
 import 'package:PiliPlus/utils/android/android_helper.dart';
 import 'package:PiliPlus/utils/android/bindings.g.dart';
+import 'package:PiliPlus/utils/platform_utils.dart';
 
 abstract final class MaxScreenSize {
   static int? _maxWidth;
@@ -25,7 +26,7 @@ abstract final class MaxScreenSize {
   }
 
   static bool isWindowMode({required num width, required num height}) {
-    if (!Platform.isAndroid) return false;
+    if (!PlatformUtils.isAndroid) return false;
     width = width.round();
     height = height.round();
     final hasWidthMatch = width == _maxWidth || width == _maxHeight;

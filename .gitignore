@@ -150,3 +150,13 @@ pili_release.json
 dist
 
 test*
+# Project-local toolchain (Flutter SDK, pub cache)
+.tooling/
+
+# Local proxy server dependencies
+server/node_modules/
+server/.env
+
+# Flutter web build output
+build/
+.qoder/

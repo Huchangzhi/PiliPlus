@@ -9,15 +9,22 @@ import 'package:PiliPlus/utils/accounts/account.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_key.dart';
+import 'package:PiliPlus/utils/platform_utils.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:material_ui/material_ui.dart';
 
 abstract final class Update {
   // 检查更新
   static Future<void> checkUpdate([bool isAuto = true]) async {
+    if (kIsWeb) {
+      if (!isAuto) {
+        SmartDialog.showToast('Web 版请通过重新部署静态文件更新');
+      }
+      return;
+    }
     if (kDebugMode) return;
     SmartDialog.dismiss();
     try {
@@ -96,10 +103,10 @@ abstract final class Update {
                     style: TextStyle(color: colorScheme.outline),
                   ),
                 ),
-                if (Platform.isWindows) ...[
+                if (PlatformUtils.isWindows) ...[
                   downloadBtn('zip', ext: 'zip'),
                   downloadBtn('exe', ext: 'exe'),
-                ] else if (Platform.isLinux) ...[
+                ] else if (PlatformUtils.isLinux) ...[
                   downloadBtn('rpm', ext: 'rpm'),
                   downloadBtn('deb', ext: 'deb'),
                   downloadBtn('targz', ext: 'tar.gz'),
@@ -133,7 +140,7 @@ abstract final class Update {
         }
       }
 
-      if (Platform.isAndroid) {
+      if (PlatformUtils.isAndroid) {
         // 获取设备信息
         AndroidDeviceInfo androidInfo = await DeviceInfoPlugin().androidInfo;
         // [arm64-v8a]

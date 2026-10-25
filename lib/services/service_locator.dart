@@ -1,11 +1,2 @@
-import 'package:PiliPlus/services/audio_handler.dart';
-import 'package:PiliPlus/services/audio_session.dart';
-
-VideoPlayerServiceHandler? videoPlayerServiceHandler;
-AudioSessionHandler? audioSessionHandler;
-
-Future<void> setupServiceLocator() async {
-  final audio = await initAudioService();
-  videoPlayerServiceHandler = audio;
-  audioSessionHandler = AudioSessionHandler();
-}
+export 'service_locator_io.dart'
+    if (dart.library.js_interop) 'service_locator_web.dart';

@@ -44,9 +44,11 @@ import 'package:cached_network_image_ce/cached_network_image.dart';
 import 'package:flutter/gestures.dart' show LongPressGestureRecognizer;
 import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:get/get.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:material_ui/material_ui.dart' hide Image;
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:PiliPlus/plugin/pl_player/widgets/simple_video.dart';
 
 ///
 /// created by dom on 2026/02/14
@@ -115,8 +117,8 @@ class _GalleryViewerState extends State<GalleryViewer>
 
   Future<void> _initPlayer() async {
     assert(_player == null);
-    final player = await Player.create();
-    _videoController = await VideoController.create(player);
+    final player = Player();
+    _videoController = VideoController(player);
     if (!mounted) {
       player.dispose();
       _videoController = null;
@@ -184,7 +186,7 @@ class _GalleryViewerState extends State<GalleryViewer>
   late final bool _hideSystemBar;
 
   void _initHideSystemBar() {
-    if (Platform.isAndroid) {
+    if (PlatformUtils.isAndroid) {
       if (showSystemBar_) {
         final size = DeviceUtils.size;
         _hideSystemBar = !MaxScreenSize.isWindowMode(
@@ -194,7 +196,7 @@ class _GalleryViewerState extends State<GalleryViewer>
       } else {
         _hideSystemBar = false;
       }
-    } else if (Platform.isIOS) {
+    } else if (PlatformUtils.isIOS) {
       _hideSystemBar = showSystemBar_;
     } else {
       _hideSystemBar = false;
@@ -514,12 +516,17 @@ class _GalleryViewerState extends State<GalleryViewer>
                   horizontalDragGestureRecognizer:
                       _horizontalDragGestureRecognizer,
                   onChangePage: _onChangePage,
-                  child: FittedBox(
-                    child: SimpleVideo(
-                      controller: _videoController!,
-                      fill: Colors.transparent,
-                    ),
-                  ),
+                  child: kIsWeb
+                      ? SimpleVideo(
+                          controller: _videoController!,
+                          fill: Colors.transparent,
+                        )
+                      : FittedBox(
+                          child: SimpleVideo(
+                            controller: _videoController!,
+                            fill: Colors.transparent,
+                          ),
+                        ),
                 )
               : const SizedBox.shrink(),
         );
@@ -600,7 +607,7 @@ class _GalleryViewerState extends State<GalleryViewer>
                 );
               },
               child: Text(
-                '保存${Platform.isIOS ? ' Live Photo' : '视频'}',
+                '保存${PlatformUtils.isIOS ? ' Live Photo' : '视频'}',
                 style: const TextStyle(fontSize: 14),
               ),
             ),

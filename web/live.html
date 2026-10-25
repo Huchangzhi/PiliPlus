@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PiliPlus Live</title>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
+    #video { width: 100%; height: 100%; background: #000; object-fit: contain; }
+    #error { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; color: #ddd; font: 14px system-ui, sans-serif; }
+  </style>
+</head>
+<body>
+  <video id="video" controls autoplay muted playsinline></video>
+  <div id="error">直播流加载失败</div>
+  <script src="/hls.min.js"></script>
+  <script>
+    (function () {
+      var url = new URLSearchParams(location.search).get('url');
+      var video = document.getElementById('video');
+      var error = document.getElementById('error');
+      function fail() {
+        error.style.display = 'flex';
+      }
+      if (!url) return fail();
+      try {
+        if (window.Hls && Hls.isSupported()) {
+          var hls = new Hls({
+            enableWorker: true,
+            lowLatencyMode: true,
+            backBufferLength: 30
+          });
+          hls.on(Hls.Events.ERROR, function (_, data) {
+            if (data && data.fatal) fail();
+          });
+          hls.loadSource(url);
+          hls.attachMedia(video);
+          video.play().catch(function () {});
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = url;
+          video.play().catch(function () {});
+        } else {
+          fail();
+        }
+      } catch (e) {
+        fail();
+      }
+    })();
+  </script>
+</body>
+</html>

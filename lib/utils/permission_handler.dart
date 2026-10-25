@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:permission_handler_platform_interface/permission_handler_platform_interface.dart';
+import 'package:PiliPlus/utils/platform_utils.dart';
 
 export 'package:permission_handler_platform_interface/permission_handler_platform_interface.dart'
     show
@@ -88,7 +89,7 @@ extension PermissionActions on Permission {
   /// This is only implemented on Android, calling this on iOS always returns
   /// [false].
   FutureOr<bool> get shouldShowRequestRationale {
-    if (!Platform.isAndroid) {
+    if (!PlatformUtils.isAndroid) {
       return false;
     }
 

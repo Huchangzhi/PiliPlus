@@ -26,6 +26,7 @@ import 'package:PiliPlus/plugin/pl_player/models/fullscreen_mode.dart';
 import 'package:PiliPlus/plugin/pl_player/models/heart_beat_type.dart';
 import 'package:PiliPlus/plugin/pl_player/models/play_repeat.dart';
 import 'package:PiliPlus/plugin/pl_player/models/play_status.dart';
+import 'package:PiliPlus/plugin/pl_player/player_api.dart';
 import 'package:PiliPlus/plugin/pl_player/models/video_fit_type.dart';
 import 'package:PiliPlus/plugin/pl_player/utils/danmaku_options.dart';
 import 'package:PiliPlus/plugin/pl_player/utils/fullscreen.dart';
@@ -203,7 +204,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
 
   late final bool autoPiP = Pref.autoPiP;
   bool get isPipMode =>
-      (Platform.isAndroid && AndroidHelper.isPipMode) ||
+      (PlatformUtils.isAndroid && AndroidHelper.isPipMode) ||
       (PlatformUtils.isDesktop && isDesktopPip);
   late bool isDesktopPip = false;
   late nativeapi.Rectangle _lastWindowBounds;
@@ -277,7 +278,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     if (window == null) return;
 
     isDesktopPip = false;
-    if (showWindowTitleBar) window.titleBarStyle = .normal;
+    if (showWindowTitleBar) WindowController.instance.setTitleBarStyle(true);
     window
       ..minimumSize = DeviceUtils.desktopMinSize
       ..bounds = _lastWindowBounds
@@ -295,15 +296,15 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
 
     _lastWindowBounds = window.bounds;
 
-    if (showWindowTitleBar) window.titleBarStyle = .hidden;
+    if (showWindowTitleBar) WindowController.instance.setTitleBarStyle(false);
 
     const shortSide = 280.0;
     const minShortSide = 160.0;
     final nativeapi.Size size;
     final nativeapi.Size minimumSize;
     final state = videoPlayerController!.state;
-    int width = state.width;
-    int height = state.height;
+    int width = state.width ?? 0;
+    int height = state.height ?? 0;
     if (width == 0) width = this.width ?? 16;
     if (height == 0) height = this.height ?? 9;
     final aspectRatio = width / height;
@@ -355,8 +356,8 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
   }
 
   void enterPip({bool autoEnter = false}) {
-    if (videoPlayerController case NativePlayer(:final state)) {
-      if (Platform.isIOS) {
+    if (videoPlayerController case Player(:final state)) {
+      if (PlatformUtils.isIOS) {
         if (videoController?.id.value case final textureId?) {
           IOSPipHelper.enter(
             textureId,
@@ -380,7 +381,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
 
   void _disableAutoEnterPip() {
     if (_isAutoEnterPip) {
-      if (Platform.isIOS) {
+      if (PlatformUtils.isIOS) {
         IOSPipHelper.disableAutoEnter();
       } else {
         PiliAndroidHelper.disableAutoEnterPip();
@@ -400,7 +401,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
   }
 
   void _updateIOSPip([Duration? position]) {
-    if (Platform.isIOS && IOSPipHelper.needsUpdate) {
+    if (PlatformUtils.isIOS && IOSPipHelper.needsUpdate) {
       if (_videoPlayerController case final player?) {
         IOSPipHelper.update(_iosPipState(player.state, position));
       }
@@ -471,7 +472,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
 
   late final bool tempPlayerConf = Pref.tempPlayerConf;
 
-  late int? cacheVideoQa = PlatformUtils.isMobile || Platform.isLinux
+  late int? cacheVideoQa = PlatformUtils.isMobile || PlatformUtils.isLinux
       ? null
       : Pref.defaultVideoQa;
   late int cacheAudioQa = Pref.defaultAudioQa;
@@ -511,23 +512,12 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     final subTitleStyle = this.subTitleStyle;
     return SubtitleViewConfiguration(
       style: subTitleStyle,
-      strokeStyle: subtitleBgOpacity == 0
-          ? subTitleStyle.copyWith(
-              color: null,
-              background: null,
-              backgroundColor: null,
-              foreground: Paint()
-                ..color = Colors.black
-                ..style = PaintingStyle.stroke
-                ..strokeWidth = subtitleStrokeWidth,
-            )
-          : null,
       padding: EdgeInsets.only(
         left: subtitlePaddingH.toDouble(),
         right: subtitlePaddingH.toDouble(),
         bottom: subtitlePaddingB.toDouble(),
       ),
-      textScaleFactor: 1,
+      textScaler: TextScaler.noScaling,
     );
   }
 
@@ -602,7 +592,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
   bool visible = true;
 
   DeviceOrientation? _orientation;
-  late final checkIsAutoRotate = Platform.isAndroid && mode != .gravity;
+  late final checkIsAutoRotate = PlatformUtils.isAndroid && mode != .gravity;
   StreamSubscription<OrientationParams>? _orientationListener;
 
   void _stopOrientationListener() {
@@ -612,7 +602,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
 
   void _onOrientationChanged(OrientationParams param) {
     _orientation = param.orientation;
-    if (Platform.isIOS && !visible) return;
+    if (PlatformUtils.isIOS && !visible) return;
     final orientation = param.orientation;
     final isFullScreen = this.isFullScreen.value;
     if (checkIsAutoRotate &&
@@ -658,7 +648,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
       _orientationListener = NativeDeviceOrientationPlatform.instance
           .onOrientationChanged(
             checkIsAutoRotate: checkIsAutoRotate,
-            angleDegrees: Platform.isAndroid ? Pref.angleDegrees : null,
+            angleDegrees: PlatformUtils.isAndroid ? Pref.angleDegrees : null,
           )
           .listen(_onOrientationChanged);
     }
@@ -667,7 +657,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
       enableHeart = false;
     }
 
-    if (Platform.isAndroid && autoPiP) {
+    if (PlatformUtils.isAndroid && autoPiP) {
       if (DeviceUtils.sdkInt < 31) {
         final func = Runnable.implement($Runnable(run: _onUserLeaveHint));
         AndroidHelper$ToDart.onUserLeaveHint = func;
@@ -675,7 +665,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
       } else {
         _isAutoEnterPip = true;
       }
-    } else if (Platform.isIOS && autoPiP && IOSPipHelper.isAvailable) {
+    } else if (PlatformUtils.isIOS && autoPiP && IOSPipHelper.isAvailable) {
       _isAutoEnterPip = true;
     }
   }
@@ -807,7 +797,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
   late final isAnim = _pgcType == 1 || _pgcType == 4;
   late final Rx<SuperResolutionType> superResolutionType =
       (isAnim ? Pref.superResolutionType : SuperResolutionType.disable).obs;
-  Future<void> setShader([SuperResolutionType? type, NativePlayer? pp]) async {
+  Future<void> setShader([SuperResolutionType? type, Player? pp]) async {
     if (type == null) {
       type = superResolutionType.value;
     } else {
@@ -819,9 +809,9 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     pp ??= _videoPlayerController!;
     switch (type) {
       case SuperResolutionType.disable:
-        return pp.command(const ['change-list', 'glsl-shaders', 'clr', '']);
+        return playerCommand(pp, const ['change-list', 'glsl-shaders', 'clr', '']);
       case SuperResolutionType.efficiency:
-        return pp.command([
+        return playerCommand(pp, [
           'change-list',
           'glsl-shaders',
           'set',
@@ -831,7 +821,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
           ),
         ]);
       case SuperResolutionType.quality:
-        return pp.command([
+        return playerCommand(pp, [
           'change-list',
           'glsl-shaders',
           'set',
@@ -847,7 +837,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     assert(_videoPlayerController == null);
     final opt = {
       'video-sync': Pref.videoSync,
-      if (Platform.isAndroid) 'ao': Pref.audioOutput,
+      if (PlatformUtils.isAndroid) 'ao': Pref.audioOutput,
       'volume':
           (PlatformUtils.isMobile ? Pref.playerVolume : volume.value * 100)
               .toString(),
@@ -857,16 +847,15 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
       opt['autosync'] = autosync;
     }
 
-    final player = await Player.create(
+    final player = Player(
       configuration: PlayerConfiguration(
         logLevel: kDebugMode ? .warn : .error,
-        options: opt,
       ),
     );
 
     assert(_videoController == null);
 
-    _videoController = await VideoController.create(
+    _videoController = VideoController(
       player,
       configuration: VideoControllerConfiguration(
         enableHardwareAcceleration: hwdec != null,
@@ -875,12 +864,12 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
       ),
     );
 
-    if (Platform.isAndroid) {
+    if (PlatformUtils.isAndroid) {
       // Avoid sizing the surface using mpv's idle window between media loads.
-      player.setProperty('force-window', 'no');
+      await setPlayerProperty(player, 'force-window', 'no');
     }
 
-    player.setMediaHeader(userAgent: BrowserUa.pc, referer: HttpString.baseUrl);
+    setMediaHeaders(player, userAgent: BrowserUa.pc, referer: HttpString.baseUrl);
 
     _startListeners(player);
 
@@ -928,10 +917,11 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
       'video-rotate': ?rotate?.toString(),
     };
 
-    String video = dataSource.videoSource;
+    String video = maybeProxyMediaUrl(dataSource.videoSource);
     if (dataSource.audioSource case final audio? when (audio.isNotEmpty)) {
+      final audioUrl = maybeProxyMediaUrl(audio);
       if (onlyPlayAudio.value) {
-        video = audio;
+        video = audioUrl;
       } else {
         // dely_open need provide length
         video =
@@ -941,7 +931,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
             '%${isFileSource ? utf8.encode(video).length : video.length}%$video;'
             '!new_stream;!no_chapters;'
             // '!delay_open,media_type=audio;'
-            '%${isFileSource ? utf8.encode(audio).length : audio.length}%$audio');
+            '%${isFileSource ? utf8.encode(audioUrl).length : audioUrl.length}%$audioUrl');
       }
       audioFilterExtras(volume, map: extras);
     }
@@ -961,8 +951,8 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     if (dataSource is FileSource) {
       return null;
     }
-    if (_videoPlayerController case final ctr? when (ctr.current.isNotEmpty)) {
-      var media = ctr.current.last;
+    if (_videoPlayerController case final ctr? when (ctr.state.playlist.medias.isNotEmpty)) {
+      var media = ctr.state.playlist.medias.last;
       if (!isLive) media = media.copyWith(start: ctr.state.position);
       return ctr.open(media, play: true);
     }
@@ -1024,7 +1014,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
   }
 
   /// 播放事件监听
-  void _startListeners(NativePlayer player) {
+  void _startListeners(Player player) {
     assert(_subscriptions == null);
     final stream = player.stream;
     _subscriptions = [
@@ -1491,7 +1481,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     } else {
       // https://github.com/flutter/flutter/issues/73651
       // https://github.com/flutter/flutter/issues/183708
-      if (Platform.isAndroid) {
+      if (PlatformUtils.isAndroid) {
         if ((orientation ?? _orientation) == .landscapeRight) {
           return landscapeRightMode();
         } else {
@@ -1679,9 +1669,9 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     if (showSeekPreview) {
       _clearPreview();
     }
-    if (Platform.isAndroid) {
+    if (PlatformUtils.isAndroid) {
       AndroidHelper$ToDart.onUserLeaveHint = null;
-    } else if (Platform.isIOS) {
+    } else if (PlatformUtils.isIOS) {
       IOSPipHelper.dispose();
     }
     _timer?.cancel();
@@ -1775,8 +1765,8 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     if (_screenshotState > 0) return;
     _screenshotState = 1;
     SmartDialog.showToast('截图中');
-    final image = await videoPlayerController?.screenshot();
-    if (image != null) {
+    final bytes = await videoPlayerController?.screenshot();
+    if (bytes != null) {
       SmartDialog.showToast('点击弹窗或按 Enter 保存截图');
       await showDialog(
         context: Get.context!,
@@ -1785,13 +1775,12 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
           Future<void> save() async {
             if (_screenshotState > 1) return;
             _screenshotState = 2;
-            final bytes = await image.toByteData(format: .png);
-            if (bytes != null) {
+            if (bytes.isNotEmpty) {
               final time = DurationUtils.formatDuration(
                 positionInMilliseconds / 1000,
               ).replaceAll(':', '-');
               ImageUtils.saveByteImg(
-                bytes: bytes.buffer.asUint8List(),
+                bytes: bytes,
                 fileName: 'screenshot_${cid}_$time',
               );
             } else {
@@ -1831,7 +1820,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(5),
-                        child: RawImage(image: image),
+                        child: Image.memory(bytes),
                       ),
                     ),
                   ),
@@ -1841,7 +1830,6 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
           );
         },
       );
-      image.dispose();
     } else {
       SmartDialog.showToast('截图失败');
     }
@@ -1856,7 +1844,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
 
       setPlayCallBack(null);
 
-      if (Platform.isAndroid && _playerCount <= 1) {
+      if (PlatformUtils.isAndroid && _playerCount <= 1) {
         _disableAutoEnterPip();
         if (!setSystemBrightness) {
           ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();

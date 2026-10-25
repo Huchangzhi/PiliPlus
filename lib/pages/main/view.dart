@@ -45,14 +45,14 @@ class _MainAppState extends PopScopeState<MainApp>
   void initState() {
     super.initState();
     addObserverMobile(this);
-    if (Platform.isMacOS) {
+    if (PlatformUtils.isMacOS) {
       HardwareKeyboard.instance.addHandler(_handleKeyEvent);
     }
     if (PlatformUtils.isDesktop) {
       WindowController.instance.init();
       TrayController.instance.init();
     }
-    if (!Platform.isMacOS) {
+    if (!PlatformUtils.isMacOS) {
       PiliScheme.init();
     }
   }
@@ -106,7 +106,7 @@ class _MainAppState extends PopScopeState<MainApp>
 
   @override
   void dispose() {
-    if (Platform.isMacOS) {
+    if (PlatformUtils.isMacOS) {
       HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     }
     if (PlatformUtils.isDesktop) {
@@ -128,7 +128,7 @@ class _MainAppState extends PopScopeState<MainApp>
 
   @pragma('vm:prefer-inline')
   static void _onBack() {
-    if (Platform.isAndroid) {
+    if (PlatformUtils.isAndroid) {
       AndroidHelper.back();
     }
   }

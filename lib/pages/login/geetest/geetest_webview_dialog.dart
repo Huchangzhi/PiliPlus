@@ -1,37 +1,93 @@
+import 'dart:async';
 import 'dart:convert' show jsonDecode;
-import 'dart:io' show Platform;
 
 import 'package:PiliPlus/http/browser_ua.dart';
 import 'package:PiliPlus/main.dart';
 import 'package:PiliPlus/plugin/linux_webview.dart';
+import 'package:PiliPlus/utils/platform_utils.dart';
+import 'package:PiliPlus/pages/login/geetest/geetest_web_messages.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
 class GeetestWebviewDialog extends StatefulWidget {
-  const GeetestWebviewDialog(this.gt, this.challenge, {super.key});
+  const GeetestWebviewDialog(
+    this.gt,
+    this.challenge, {
+    super.key,
+    this.recaptchaType,
+  });
 
   final String gt;
   final String challenge;
+  final String? recaptchaType;
 
   @override
   State<GeetestWebviewDialog> createState() => _GeetestWebviewDialogState();
 
-  static Future<Map<String, dynamic>?> geetest(String gt, String challenge) {
+  static Future<Map<String, dynamic>?> geetest(
+    String gt,
+    String challenge, {
+    String? recaptchaType,
+  }) {
     return showDialog<Map<String, dynamic>>(
       context: Get.context!,
-      builder: (context) => GeetestWebviewDialog(gt, challenge),
+      builder: (context) => GeetestWebviewDialog(
+        gt,
+        challenge,
+        recaptchaType: recaptchaType,
+      ),
     );
   }
 }
 
 class _GeetestWebviewDialogState extends State<GeetestWebviewDialog> {
+  StreamSubscription<Map<String, dynamic>>? _webSub;
+
+  @override
+  void initState() {
+    super.initState();
+    if (kIsWeb) {
+      _webSub = geetestWebMessages().listen((message) {
+        switch (message['name']) {
+          case 'success':
+            final data = message['data'];
+            if (data is Map) {
+              Get.back(result: Map<String, dynamic>.from(data));
+            }
+            break;
+          case 'close':
+            Get.back();
+            break;
+          case 'error':
+            debugPrint('geetest error: ${message['data']}');
+            SmartDialog.showToast('验证码加载失败，请重试');
+            Get.back();
+            break;
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _webSub?.cancel();
+    super.dispose();
+  }
+
   static const _geetestJsUri =
       'https://static.geetest.com/static/js/fullpage.0.0.0.js';
   static const _geetestConfigUri = 'https://api.geetest.com/gettype.php';
 
   static String _buildHtml(String gt, String challenge) {
     final ts = DateTime.now().millisecondsSinceEpoch;
+    final bridge = kIsWeb
+        ? "R=(n,o)=>window.top.postMessage(JSON.stringify({type:'pili-geetest',name:n,data:o}),'*')"
+        : PlatformUtils.isLinux
+        ? "R=(n,o)=>window.webkit.messageHandlers.msgToNative.postMessage(n+':'+JSON.stringify(o))"
+        : "R=(n,o)=>window.flutter_inappwebview?.callHandler(n,o)";
     final js =
         'var C,S,T,t;'
         'T=()=>{if(C&&S&&!t){t=Geetest(C).onSuccess(()=>R("success",t.getValidate())).onError(o=>R("error",o)).onClose(o=>R("close",o));t.onReady(()=>t.verify())}};'
@@ -46,18 +102,44 @@ class _GeetestWebviewDialogState extends State<GeetestWebviewDialog> {
         '<style>#E{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:red}</style>'
         '<body><div id="E"></div>'
         '<script>'
-        '${Platform.isLinux ? "R=(n,o)=>window.webkit.messageHandlers.msgToNative.postMessage(n+':'+JSON.stringify(o))" : "R=(n,o)=>window.flutter_inappwebview?.callHandler(n,o)"};$js'
+        '$bridge;$js'
         '</script>'
         '<script src="$_geetestJsUri" onload="G()" onerror="E()"></script>'
         '<script src="$_geetestConfigUri?gt=$gt&callback=geetest_$ts" onerror="E()"></script>'
         '</body></html>';
   }
 
+  static String _buildV4Html(String gt, String challenge, String bridge) {
+    final safeGt = gt.replaceAll('"', '');
+    final safeChallenge = challenge.replaceAll('"', '');
+    return '<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width"></head>'
+        '<style>#E{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:red}</style>'
+        '<body><div id="E"></div>'
+        '<script>$bridge</script>'
+        '<script src="https://static.geetest.com/v4/gt4.js" onerror="R(\'error\',\'gt4 script load failed\')"></script>'
+        '<script>'
+        'try{'
+        'initGeetest4({captchaId:"$safeGt",challenge:"$safeChallenge",product:"bind",protocol:"https://"},function(c){'
+        'c.onSuccess(function(){R("success",c.getValidate())});'
+        'c.onError(function(e){R("error",e)});'
+        'c.onClose(function(e){R("close",e)});'
+        'c.showCaptcha();'
+        '})}catch(e){R("error",String(e))}'
+        '</script></body></html>';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final html = _buildHtml(widget.gt, widget.challenge);
+    final bridge = kIsWeb
+        ? "R=(n,o)=>window.top.postMessage(JSON.stringify({type:'pili-geetest',name:n,data:o}),'*')"
+        : PlatformUtils.isLinux
+        ? "R=(n,o)=>window.webkit.messageHandlers.msgToNative.postMessage(n+':'+JSON.stringify(o))"
+        : "R=(n,o)=>window.flutter_inappwebview?.callHandler(n,o)";
+    final html = widget.recaptchaType == 'geetest4'
+        ? _buildV4Html(widget.gt, widget.challenge, bridge)
+        : _buildHtml(widget.gt, widget.challenge);
 
-    if (Platform.isLinux) {
+    if (PlatformUtils.isLinux) {
       return AlertDialog(
         title: const Text('验证码'),
         content: SizedBox(
@@ -122,10 +204,10 @@ class _GeetestWebviewDialogState extends State<GeetestWebviewDialog> {
             verticalScrollBarEnabled: false,
             overScrollMode: .NEVER,
 
-            pageZoom: Platform.isIOS ? 3 : 1,
+            pageZoom: PlatformUtils.isIOS ? 3 : 1,
           ),
           initialData: InAppWebViewInitialData(data: html),
-          onWebViewCreated: (ctr) {
+          onWebViewCreated: kIsWeb ? null : (ctr) {
             ctr
               ..addJavaScriptHandler(
                 handlerName: 'success',
