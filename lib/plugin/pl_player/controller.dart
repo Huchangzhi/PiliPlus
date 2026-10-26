@@ -1023,6 +1023,13 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     assert(_subscriptions == null);
     final stream = player.stream;
     _subscriptions = [
+      /// web: <video> 换源后会被浏览器重置倍速，按用户设定重新施加
+      if (kIsWeb)
+        stream.rate.listen((double rate) {
+          if (isLive || rate == _playbackSpeed.value) return;
+          _videoPlayerController?.setRate(_playbackSpeed.value);
+        }),
+
       /// playing
       stream.playing.listen((bool playing) {
         if (playing) {
@@ -1238,10 +1245,14 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
   Future<void> setPlaybackSpeed(double speed) async {
     lastPlaybackSpeed = playbackSpeed;
 
-    if (speed == _videoPlayerController?.state.rate) return;
+    // 浏览器在换源时会把 <video>.playbackRate 重置回 1x，而 state.rate 仍是旧值，
+    // 所以 Web 端每次都重新施加。
+    if (!kIsWeb && speed == _videoPlayerController?.state.rate) return;
 
+    if (!isLive) {
+      _playbackSpeed.value = speed;
+    }
     await _videoPlayerController?.setRate(speed);
-    if (!isLive) _playbackSpeed.value = speed;
     _updatePlaybackState();
     if (danmakuController != null) {
       try {
