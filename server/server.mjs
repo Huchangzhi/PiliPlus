@@ -757,7 +757,20 @@ async function relay(req, res, target) {
   const collectedCookies = [];
   let method = req.method || 'GET';
   const media = isMediaRequest(req, target);
-  const signal = AbortSignal.timeout(media ? MEDIA_TIMEOUT_MS : UPSTREAM_TIMEOUT_MS);
+  // Only bound connect + header wait. A media response body (long MP4, live
+  // FLV) legitimately stays open far longer than that, so the timer is cleared
+  // once the upstream headers arrive.
+  const controller = new AbortController();
+  let connectTimer = setTimeout(
+    () => controller.abort(),
+    media ? MEDIA_TIMEOUT_MS : UPSTREAM_TIMEOUT_MS,
+  );
+  const clearConnectTimer = () => {
+    if (connectTimer) {
+      clearTimeout(connectTimer);
+      connectTimer = null;
+    }
+  };
   const hasBody = !['GET', 'HEAD'].includes(method);
 
   let body;
@@ -781,10 +794,11 @@ async function relay(req, res, target) {
       headers,
       body,
       redirect: 'manual',
-      signal,
+      signal: controller.signal,
       dispatcher: upstreamDispatcher,
       duplex: hasBody ? 'half' : undefined,
     });
+    clearConnectTimer();
 
     if (LOG_REQUESTS) {
       console.log(

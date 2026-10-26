@@ -1,4 +1,3 @@
-import 'dart:io';
 
 import 'package:PiliPlus/models/common/video/base_quality.dart';
 import 'package:PiliPlus/models/common/video/cdn_type.dart';
@@ -123,20 +122,23 @@ List<SettingsModel> get videoSettings => [
         '当前画质：${LiveQuality.fromCode(Pref.liveQualityCellular).desc}',
     onTap: _showLiveCellularQaDialog,
   ),
-  NormalModel(
-    title: '首选解码格式',
-    leading: const Icon(Icons.movie_creation_outlined),
-    getSubtitle: () =>
-        '首选解码格式：${(Pref.preferCodecs.map((i) => i.name).join(","))}，请根据设备支持情况与需求调整',
-    onTap: _showCodecsDialog,
-  ),
-  NormalModel(
-    title: '蜂窝网络首选解码格式',
-    leading: const Icon(Icons.movie_creation_outlined),
-    getSubtitle: () =>
-        '首选解码格式：${(Pref.preferCodecsCellular.map((i) => i.name).join(","))}，请根据设备支持情况与需求调整',
-    onTap: _showCellularCodecsDialog,
-  ),
+  // 浏览器走单文件 MP4，编码与 mpv 参数无关
+  if (!kIsWeb) ...[
+    NormalModel(
+      title: '首选解码格式',
+      leading: const Icon(Icons.movie_creation_outlined),
+      getSubtitle: () =>
+          '首选解码格式：${(Pref.preferCodecs.map((i) => i.name).join(","))}，请根据设备支持情况与需求调整',
+      onTap: _showCodecsDialog,
+    ),
+    NormalModel(
+      title: '蜂窝网络首选解码格式',
+      leading: const Icon(Icons.movie_creation_outlined),
+      getSubtitle: () =>
+          '首选解码格式：${(Pref.preferCodecsCellular.map((i) => i.name).join(","))}，请根据设备支持情况与需求调整',
+      onTap: _showCellularCodecsDialog,
+    ),
+  ],
   if (kDebugMode || PlatformUtils.isAndroid)
     NormalModel(
       title: '音频输出设备',
@@ -178,18 +180,20 @@ List<SettingsModel> get videoSettings => [
     getSubtitle: () => '当前：${Pref.autosync}（此项即mpv的--autosync）',
     onTap: _showAutoSyncDialog,
   ),
-  NormalModel(
-    title: '视频同步',
-    leading: const Icon(Icons.view_timeline_outlined),
-    getSubtitle: () => '当前：${Pref.videoSync}（此项即mpv的--video-sync）',
-    onTap: _showVideoSyncDialog,
-  ),
-  NormalModel(
-    title: '硬解模式',
-    leading: const Icon(Icons.memory_outlined),
-    getSubtitle: () => '当前：${Pref.hardwareDecoding}（此项即mpv的--hwdec）',
-    onTap: _showHwDecDialog,
-  ),
+  if (!kIsWeb) ...[
+    NormalModel(
+      title: '视频同步',
+      leading: const Icon(Icons.view_timeline_outlined),
+      getSubtitle: () => '当前：${Pref.videoSync}（此项即mpv的--video-sync）',
+      onTap: _showVideoSyncDialog,
+    ),
+    NormalModel(
+      title: '硬解模式',
+      leading: const Icon(Icons.memory_outlined),
+      getSubtitle: () => '当前：${Pref.hardwareDecoding}（此项即mpv的--hwdec）',
+      onTap: _showHwDecDialog,
+    ),
+  ],
 ];
 
 Future<void> _showCDNDialog(BuildContext context, VoidCallback setState) async {
