@@ -38,6 +38,7 @@ import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/subtitle_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/web_media_support.dart';
 import 'package:PiliPlus/utils/wbi_sign.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show compute, kIsWeb;
@@ -223,10 +224,12 @@ abstract final class VideoHttp {
     required VideoType videoType,
     String? language,
     bool voiceBalance = false,
+    bool allowWebHighQa = false,
   }) async {
     // Browsers play progressive MP4 (fnval=1), which does not support
     // 4K/HDR/Dolby qualities; asking for them returns -400 from bilibili.
-    final effectiveQn = kIsWeb && qn > 64 ? 64 : qn;
+    final effectiveQn =
+        kIsWeb && !allowWebHighQa && qn > 64 ? 64 : qn;
     final Map<String, dynamic> params;
     Map<String, dynamic>? data;
 
@@ -243,9 +246,11 @@ abstract final class VideoHttp {
           'qn': effectiveQn,
           // 浏览器无法合并 DASH 音视频轨，Web 端请求单文件 MP4
           'fnval': kIsWeb ? 1 : 4048,
-          if (kIsWeb) ...const {
+          if (kIsWeb) ...{
             'platform': 'html5',
-            'high_quality': 1,
+            // high_quality may hand out an HEVC mp4 that mobile browsers
+            // cannot decode; only ask for it when the browser reports HEVC.
+            if (browserSupportsHevc) 'high_quality': 1,
           },
           'fourk': 1,
           'fnver': 0,

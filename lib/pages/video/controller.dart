@@ -703,11 +703,17 @@ class VideoDetailController extends GetxController
   void updatePlayer() {
     final currentVideoQa = this.currentVideoQa.value;
     if (currentVideoQa == null) return;
+    if (data.dash == null && !kIsWeb) return;
     _autoPlay.value = true;
     playedTime = plPlayerController.videoPlayerController?.state.position;
     plPlayerController
       ..isBuffering.value = false
       ..buffered.value = 0;
+
+    if (data.dash == null) {
+      _reloadDurlForQuality(currentVideoQa.code);
+      return;
+    }
 
     firstVideo = findVideoByQa(currentVideoQa.code, setCodecs: true);
     videoUrl = VideoUtils.getCdnUrl(firstVideo.playUrls);
@@ -813,11 +819,15 @@ class VideoDetailController extends GetxController
     queryVideoUrl(fromReset: true);
   }
 
-  Future<LoadingState<PlayUrlModel>> _getVideoUrl(int quality) {
+  Future<LoadingState<PlayUrlModel>> _getVideoUrl(
+    int quality, {
+    bool allowWebHighQa = false,
+  }) {
     return VideoHttp.videoUrl(
       cid: cid.value,
       bvid: bvid,
       qn: quality,
+      allowWebHighQa: allowWebHighQa,
       epid: epId,
       seasonId: seasonId,
       tryLook: plPlayerController.tryLook,
@@ -833,6 +843,47 @@ class VideoDetailController extends GetxController
     final result = await _getVideoUrl(quality);
     if (result case Success(:final response)) {
       data.dash!.video!.merge(response.dash?.video);
+    }
+  }
+
+  /// Web 播放的是单文件 MP4，没有 DASH 轨道列表，切换画质需重新取地址。
+  Future<void> _reloadDurlForQuality(int quality) async {
+    var result = await _getVideoUrl(quality, allowWebHighQa: true);
+    if (quality > 64) {
+      final unusable = switch (result) {
+        Success(:final response) => (response.durl?.isEmpty ?? true),
+        _ => true,
+      };
+      if (unusable) {
+        result = await _getVideoUrl(64);
+        SmartDialog.showToast('浏览器不支持该画质，已切回 720P');
+      }
+    }
+    if (result case Success(:final response)) {
+      final durl = response.durl;
+      if (durl == null || durl.isEmpty) {
+        SmartDialog.showToast('该画质没有可用的播放地址');
+        return;
+      }
+      data = response;
+      videoUrl = VideoUtils.getCdnUrl(durl.first.playUrls);
+      audioUrl = '';
+      final videoQuality = VideoQuality.fromFormat(
+        response.quality!,
+        response.supportFormats,
+      );
+      firstVideo = VideoItem(
+        id: response.quality!,
+        baseUrl: videoUrl!,
+        codecs: 'avc1',
+        quality: videoQuality,
+      );
+      currentDecodeFormats = VideoDecodeFormatType.AVC;
+      currentVideoQa.value = videoQuality;
+      _setVideoHeight();
+      await playerInit();
+    } else {
+      result.toast();
     }
   }
 

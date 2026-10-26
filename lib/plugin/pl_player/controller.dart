@@ -51,10 +51,11 @@ import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_key.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/utils.dart';
+import 'package:PiliPlus/utils/web_media_support.dart';
 import 'package:archive/archive.dart' show getCrc32;
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:easy_debounce/easy_throttle.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/services.dart'
     show DeviceOrientation, HapticFeedback, KeyDownEvent;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -1108,6 +1109,23 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
           }
         })),
       stream.error.listen((String event) {
+        if (kIsWeb) {
+          EasyThrottle.throttle(
+            'web-player-error',
+            const Duration(seconds: 8),
+            () {
+              SmartDialog.showToast(
+                '播放失败 ${describeWebMediaSupport()}\n'
+                '${event.length > 160 ? '${event.substring(0, 160)}…' : event}',
+                displayTime: const Duration(seconds: 8),
+              );
+              if (isBuffering.value && buffered.value == 0) {
+                Timer(const Duration(milliseconds: 1500), refreshPlayer);
+              }
+            },
+          );
+          return;
+        }
         if (dataSource is FileSource &&
             event.startsWith("Failed to open file")) {
           return;

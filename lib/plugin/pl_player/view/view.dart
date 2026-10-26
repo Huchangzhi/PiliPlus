@@ -793,11 +793,13 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
             return const SizedBox.shrink();
           }
           final PlayUrlModel videoInfo = videoDetailController.data;
-          if (videoInfo.dash == null) {
+          if (videoInfo.dash == null && videoInfo.durl == null) {
             return const SizedBox.shrink();
           }
           final videoFormat = videoInfo.supportFormats!;
-          final availableQa = videoInfo.dash!.video!.availableVideoQualities;
+          final availableQa =
+              videoInfo.dash?.video?.availableVideoQualities ??
+              (videoInfo.acceptQuality?.toSet() ?? const <int>{});
           return PopupMenuButton<int>(
             tooltip: '画质',
             requestFocus: false,

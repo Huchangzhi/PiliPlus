@@ -63,7 +63,7 @@ import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart' show compute, kDebugMode;
+import 'package:flutter/foundation.dart' show compute, kDebugMode, kIsWeb;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
@@ -646,19 +646,20 @@ class HeaderControlState extends State<HeaderControl>
                         style: subTitleStyle,
                       ),
                     ),
-                  ListTile(
-                    dense: true,
-                    onTap: () {
-                      Get.back();
-                      showSetDecodeFormats();
-                    },
-                    leading: const Icon(Icons.av_timer_outlined, size: 20),
-                    title: const Text('解码格式', style: titleStyle),
-                    subtitle: Text(
-                      '当前解码格式 ${videoDetailCtr.currentDecodeFormats.description}',
-                      style: subTitleStyle,
+                  if (!kIsWeb)
+                    ListTile(
+                      dense: true,
+                      onTap: () {
+                        Get.back();
+                        showSetDecodeFormats();
+                      },
+                      leading: const Icon(Icons.av_timer_outlined, size: 20),
+                      title: const Text('解码格式', style: titleStyle),
+                      subtitle: Text(
+                        '当前解码格式 ${videoDetailCtr.currentDecodeFormats.description}',
+                        style: subTitleStyle,
+                      ),
                     ),
-                  ),
                 ],
                 PopupListTile(
                   dense: true,
@@ -907,7 +908,7 @@ class HeaderControlState extends State<HeaderControl>
 
   /// 选择画质
   void showSetVideoQa() {
-    if (videoInfo.dash == null) {
+    if (videoInfo.dash == null && videoInfo.durl == null) {
       SmartDialog.showToast('当前视频不支持选择画质');
       return;
     }
@@ -915,7 +916,9 @@ class HeaderControlState extends State<HeaderControl>
     if (currentVideoQa == null) return;
 
     final List<FormatItem> videoFormat = videoInfo.supportFormats!;
-    final availableQa = videoInfo.dash!.video!.availableVideoQualities;
+    final availableQa =
+        videoInfo.dash?.video?.availableVideoQualities ??
+        (videoInfo.acceptQuality?.toSet() ?? const <int>{});
 
     showBottomSheet(
       (context, setState) {
