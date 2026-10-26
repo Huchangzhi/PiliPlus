@@ -72,7 +72,7 @@ import 'package:collection/collection.dart';
 import 'package:dio/dio.dart' show Options;
 import 'package:extended_nested_scroll_view/extended_nested_scroll_view.dart'
     show ExtendedNestedScrollViewState;
-import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+import 'package:flutter/foundation.dart' show debugPrint, kDebugMode, kIsWeb;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:get/get.dart';
@@ -1154,6 +1154,9 @@ class VideoDetailController extends GetxController
       cues = SubtitleUtils.text2Cues(id);
     }
     if (cues == null || cues.isEmpty) {
+      debugPrint(
+        '[subtitle] web 取字幕失败: ${subtitles[index - 1].subtitleUrl}',
+      );
       plPlayerController.webSubtitleCues.value = const [];
       SmartDialog.showToast('该字幕暂不支持在浏览器中显示');
       return;
@@ -1231,6 +1234,10 @@ class VideoDetailController extends GetxController
       epId: epId,
     );
     if (res case Success(:final response)) {
+      debugPrint(
+        '[subtitle] $bvid cid=${cid.value} '
+        'subtitles=${response.subtitle?.subtitles?.length ?? 0}',
+      );
       // interactive video
       if (isUgc && graphVersion == null) {
         try {
@@ -1303,11 +1310,14 @@ class VideoDetailController extends GetxController
           res.toast();
         }
       }
+    } else {
+      debugPrint('[subtitle] playInfo 失败: $res');
     }
   }
 
   Future<void> _setSubtitle(List<Subtitle> sub) async {
     subtitles.value = sub;
+    debugPrint('[subtitle] 可用字幕 ${sub.length} 个: ${sub.map((e) => e.lanDoc).join(' | ')}');
     final idx = switch (Pref.subtitlePreferenceV2) {
       .off => 0,
       .on => 1,
