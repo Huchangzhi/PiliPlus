@@ -15,6 +15,7 @@ import 'package:PiliPlus/models/model_hot_video_item.dart';
 import 'package:PiliPlus/models/model_rec_video_item.dart';
 import 'package:PiliPlus/models/pgc_lcf.dart';
 import 'package:PiliPlus/models/video/play/url.dart';
+import 'package:PiliPlus/models/video/subtitle_cue.dart';
 import 'package:PiliPlus/models_new/pgc/pgc_rank/pgc_rank_item_model.dart';
 import 'package:PiliPlus/models_new/popular/popular_precious/data.dart';
 import 'package:PiliPlus/models_new/popular/popular_series_list/list.dart';
@@ -910,6 +911,14 @@ abstract final class VideoHttp {
     } else {
       return Error(res.data['message']);
     }
+  }
+
+  static Future<List<SubtitleCue>?> getSubtitleCues(String subtitleUrl) async {
+    final res = await Request().get("https:$subtitleUrl");
+    if (res.data?['body'] case List list) {
+      return compute<List, List<SubtitleCue>>(SubtitleUtils.json2Cues, list);
+    }
+    return null;
   }
 
   static Future<String?> getSubtitles(

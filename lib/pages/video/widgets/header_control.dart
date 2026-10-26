@@ -1,6 +1,6 @@
 import 'dart:async' show Timer;
 import 'dart:convert' show jsonDecode, utf8;
-import 'dart:io' show Platform, File;
+import 'dart:io' show File;
 import 'dart:typed_data' show Uint8List;
 
 import 'package:PiliPlus/common/constants.dart';
@@ -724,6 +724,14 @@ class HeaderControlState extends State<HeaderControl>
                         final file = result.xFile;
                         final path = file.path;
                         final name = file.name;
+                        if (kIsWeb) {
+                          final bytes = await file.readAsBytes();
+                          await videoDetailCtr.loadWebSubtitleText(
+                            name,
+                            utf8.decode(bytes, allowMalformed: true),
+                          );
+                          return;
+                        }
                         final length = videoDetailCtr.subtitles.length;
                         if (name.endsWith('.json') || name.endsWith('.bcc')) {
                           final file = File(path);

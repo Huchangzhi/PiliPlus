@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'dart:ui' show clampDouble;
@@ -50,6 +49,7 @@ import 'package:PiliPlus/plugin/pl_player/widgets/common_btn.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/forward_seek.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/mpv_convert_webp.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/simple_video.dart';
+import 'package:PiliPlus/plugin/pl_player/widgets/web_subtitle_view.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/play_pause_btn.dart';
 import 'package:PiliPlus/utils/android/bindings.g.dart';
 import 'package:PiliPlus/utils/cache_manager.dart';
@@ -1368,12 +1368,18 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
           Positioned.fill(
             child: IgnorePointer(
               ignoring: !plPlayerController.enableDragSubtitle,
-              child: Obx(
-                () => SubtitleView(
-                  controller: videoController,
-                  configuration: plPlayerController.subtitleConfig.value,
-                ),
-              ),
+              child: Obx(() {
+                final configuration = plPlayerController.subtitleConfig.value;
+                return kIsWeb
+                    ? WebSubtitleView(
+                        plPlayerController: plPlayerController,
+                        configuration: configuration,
+                      )
+                    : SubtitleView(
+                        controller: videoController,
+                        configuration: configuration,
+                      );
+              }),
             ),
           ),
 

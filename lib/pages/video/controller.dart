@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:io' show Platform;
+import 'dart:convert' show jsonDecode;
 import 'dart:math' show min;
 import 'dart:ui';
 
@@ -26,6 +26,7 @@ import 'package:PiliPlus/models/common/video/source_type.dart';
 import 'package:PiliPlus/models/common/video/video_decode_type.dart';
 import 'package:PiliPlus/models/common/video/video_type.dart';
 import 'package:PiliPlus/models/video/play/url.dart';
+import 'package:PiliPlus/models/video/subtitle_cue.dart';
 import 'package:PiliPlus/models_new/download/bili_download_entry_info.dart';
 import 'package:PiliPlus/models_new/media_list/media_list.dart';
 import 'package:PiliPlus/models_new/pgc/pgc_info_model/result.dart';
@@ -63,6 +64,7 @@ import 'package:PiliPlus/utils/platform_utils.dart';
 import 'package:PiliPlus/utils/reply_scheme_helper.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
+import 'package:PiliPlus/utils/subtitle_utils.dart';
 import 'package:PiliPlus/utils/theme_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:PiliPlus/utils/video_utils.dart';
@@ -76,7 +78,7 @@ import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:get/get.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:media_kit/media_kit.dart' hide Subtitle;
+import 'package:media_kit/media_kit.dart';
 
 class VideoDetailController extends GetxController
     with GetTickerProviderStateMixin, BlockMixin {
@@ -1093,6 +1095,11 @@ class VideoDetailController extends GetxController
 
   // 设定字幕轨道
   Future<void> setSubtitle(int index) async {
+    if (kIsWeb) {
+      await _setWebSubtitle(index);
+      vttSubtitlesIndex.value = index;
+      return;
+    }
     if (index <= 0) {
       await plPlayerController.videoPlayerController?.setSubtitleTrack(.no());
       vttSubtitlesIndex.value = index;
@@ -1125,6 +1132,60 @@ class VideoDetailController extends GetxController
       }
     }
     await setSub(subtitle);
+  }
+
+  final Map<int, List<SubtitleCue>> _webSubtitleCues = {};
+
+  /// Web 端字幕：解析出时间轴交给自绘 overlay 显示。
+  Future<void> _setWebSubtitle(int index) async {
+    if (index <= 0) {
+      plPlayerController.webSubtitleCues.value = const [];
+      return;
+    }
+    if (_webSubtitleCues[index] case final cues?) {
+      plPlayerController.webSubtitleCues.value = cues;
+      return;
+    }
+    List<SubtitleCue>? cues;
+    if (subtitles[index - 1].subtitleUrl case final url? when url.isNotEmpty) {
+      cues = await VideoHttp.getSubtitleCues(url);
+      if (isClosed) return;
+    } else if (vttSubtitles[index - 1] case (isData: true, :final id)) {
+      cues = SubtitleUtils.text2Cues(id);
+    }
+    if (cues == null || cues.isEmpty) {
+      plPlayerController.webSubtitleCues.value = const [];
+      SmartDialog.showToast('该字幕暂不支持在浏览器中显示');
+      return;
+    }
+    _webSubtitleCues[index] = cues;
+    plPlayerController.webSubtitleCues.value = cues;
+  }
+
+  /// Web 端加载本地字幕文件内容。
+  Future<void> loadWebSubtitleText(String name, String content) async {
+    final List<SubtitleCue> cues;
+    if (name.endsWith('.json') || name.endsWith('.bcc')) {
+      final decoded = jsonDecode(content);
+      cues = SubtitleUtils.json2Cues(
+        decoded is Map ? (decoded['body'] as List? ?? const []) : decoded as List,
+      );
+    } else if (name.endsWith('.ass') || name.endsWith('.ssa')) {
+      SmartDialog.showToast('浏览器暂不支持 ASS 字幕');
+      return;
+    } else {
+      cues = SubtitleUtils.text2Cues(content);
+    }
+    if (cues.isEmpty) {
+      SmartDialog.showToast('字幕文件解析失败');
+      return;
+    }
+    final index = subtitles.length + 1;
+    subtitles.add(
+      Subtitle(lan: '', lanDoc: name.split('.').firstOrNull ?? name),
+    );
+    _webSubtitleCues[index] = cues;
+    await setSubtitle(index);
   }
 
   // interactive video
@@ -1253,7 +1314,8 @@ class VideoDetailController extends GetxController
       .withoutAi => sub.first.lan.startsWith('ai') ? 0 : 1,
       .auto =>
         !sub.first.lan.startsWith('ai') ||
-                (PlatformUtils.isMobile &&
+                (!kIsWeb &&
+                    PlatformUtils.isMobile &&
                     (await FlutterVolumeController.getVolume() ?? 0.0) <= 0.0)
             ? 1
             : 0,

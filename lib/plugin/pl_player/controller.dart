@@ -1,6 +1,5 @@
 import 'dart:async' show StreamSubscription, Timer;
 import 'dart:convert' show ascii, utf8;
-import 'dart:io' show Platform;
 import 'dart:math' show max, min;
 import 'dart:ui' as ui;
 
@@ -15,6 +14,7 @@ import 'package:PiliPlus/models/common/super_resolution_type.dart';
 import 'package:PiliPlus/models/common/video/video_type.dart';
 import 'package:PiliPlus/models/user/danmaku_rule.dart';
 import 'package:PiliPlus/models/video/play/url.dart';
+import 'package:PiliPlus/models/video/subtitle_cue.dart';
 import 'package:PiliPlus/models_new/video/video_shot/data.dart';
 import 'package:PiliPlus/pages/danmaku/danmaku_model.dart';
 import 'package:PiliPlus/pages/sponsor_block/block_mixin.dart';
@@ -508,6 +508,10 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
   );
 
   late final Rx<SubtitleViewConfiguration> subtitleConfig = getSubConfig.obs;
+
+  /// Web 后端没有 mpv 字幕轨，页面控制器解析出时间轴后放这里，由自绘 overlay 显示。
+  final ValueNotifier<List<SubtitleCue>> webSubtitleCues =
+      ValueNotifier(const []);
 
   SubtitleViewConfiguration get getSubConfig {
     final subTitleStyle = this.subTitleStyle;
@@ -1676,6 +1680,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     }
 
     _playerCount = 0;
+    webSubtitleCues.value = const [];
     if (removeSafeArea) {
       showSystemBar();
     }
