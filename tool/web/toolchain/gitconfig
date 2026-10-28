@@ -1,0 +1,15 @@
+# Project-local git config used for `flutter pub get` subprocesses only.
+# It routes the git-hosted dependencies through a GitHub mirror that is
+# reachable from this machine. User-global git config is left untouched.
+[url "https://ghfast.top/https://github.com/bggRGjQaUbCoE/"]
+	insteadOf = https://github.com/bggRGjQaUbCoE/
+[url "https://ghfast.top/https://github.com/My-Responsitories/"]
+	insteadOf = https://github.com/My-Responsitories/
+[url "https://ghfast.top/https://github.com/wgh136/"]
+	insteadOf = https://github.com/wgh136/
+[url "https://ghfast.top/https://github.com/leanflutter/"]
+	insteadOf = https://github.com/leanflutter/
+[url "https://ghfast.top/https://github.com/flutter-webrtc/"]
+	insteadOf = https://github.com/flutter-webrtc/
+[url "https://ghfast.top/https://github.com/media-kit/"]
+	insteadOf = https://github.com/media-kit/
